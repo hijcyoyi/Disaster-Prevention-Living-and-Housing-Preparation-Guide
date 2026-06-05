@@ -2,35 +2,41 @@ import { SupplyItem } from './types';
 
 export const defaultSupplies: SupplyItem[] = [
   // 糧食飲水
-  { id: '1', category: '糧食飲水', name: '瓶裝水', hasIt: false },
-  { id: '2', category: '糧食飲水', name: '高熱量防災食品（如營養口糧、能量棒、罐頭）', hasIt: false },
+  { id: '1', category: '糧食飲水', name: '隨身瓶裝水 (避難包必備)', hasIt: false, urgency: 'immediate' },
+  { id: '2', category: '糧食飲水', name: '大容量飲用水 (居家儲置 3天份以上)', hasIt: false, urgency: 'routine' },
+  { id: '3', category: '糧食飲水', name: '高熱量隨身防災食品 (能量棒、堅果、營養口糧)', hasIt: false, urgency: 'immediate' },
+  { id: '4', category: '糧食飲水', name: '居家耐儲主食與罐頭 (無須加熱即可食用食品)', hasIt: false, urgency: 'routine' },
+  
   // 保暖禦寒
-  { id: '3', category: '保暖禦寒', name: '輕便雨衣', hasIt: false },
-  { id: '4', category: '保暖禦寒', name: '保暖外套', hasIt: false },
-  { id: '5', category: '保暖禦寒', name: '毛毯', hasIt: false },
-  { id: '6', category: '保暖禦寒', name: '暖暖包', hasIt: false },
-  { id: '7', category: '保暖禦寒', name: '厚襪子', hasIt: false },
+  { id: '5', category: '保暖禦寒', name: '輕便雨衣 (防風防雨隨身攜帶)', hasIt: false, urgency: 'immediate' },
+  { id: '6', category: '保暖禦寒', name: '保暖外套 (防失溫隨身攜帶)', hasIt: false, urgency: 'immediate' },
+  { id: '7', category: '保暖禦寒', name: '隨身蓄熱暖暖包', hasIt: false, urgency: 'immediate' },
+  { id: '8', category: '保暖禦寒', name: '家庭備用毛毯與防寒睡袋', hasIt: false, urgency: 'routine' },
+  { id: '9', category: '保暖禦寒', name: '乾爽換穿厚襪 (預防濕底失溫)', hasIt: false, urgency: 'routine' },
+  
   // 醫療急救
-  { id: '8', category: '醫療急救', name: '個人常備藥（3天份以上）', hasIt: false },
-  { id: '9', category: '醫療急救', name: 'OK繃', hasIt: false },
-  { id: '10', category: '醫療急救', name: '紗布', hasIt: false },
-  { id: '11', category: '醫療急救', name: '優碘', hasIt: false },
-  { id: '12', category: '醫療急救', name: '棉花棒', hasIt: false },
-  { id: '13', category: '醫療急救', name: '生理食鹽水', hasIt: false },
+  { id: '10', category: '醫療急救', name: '個人三天份常備藥/慢性病處方藥 (防水密隨身袋)', hasIt: false, urgency: 'immediate' },
+  { id: '11', category: '醫療急救', name: '隨身基礎急救包 (OK繃、酒精棉片、透氣膠帶)', hasIt: false, urgency: 'immediate' },
+  { id: '12', category: '醫療急救', name: '優碘或強效消毒軟膏', hasIt: false, urgency: 'immediate' },
+  { id: '13', category: '醫療急救', name: '大卷繃帶與醫用無菌紗布', hasIt: false, urgency: 'routine' },
+  { id: '14', category: '醫療急救', name: '生理食鹽水 (傷口沖洗清洗用)', hasIt: false, urgency: 'routine' },
+  { id: '15', category: '醫療急救', name: '滅菌棉花棒與常規剪刀', hasIt: false, urgency: 'routine' },
+  
   // 重要物品
-  { id: '14', category: '重要物品', name: '身分證/健保卡影本', hasIt: false },
-  { id: '15', category: '重要物品', name: '存摺影本', hasIt: false },
-  { id: '16', category: '重要物品', name: '少許現金（小面額零錢以備公共電話或投幣機使用）', hasIt: false },
+  { id: '16', category: '重要物品', name: '重要身分證/健保卡影本 (置入防水密袋隨身)', hasIt: false, urgency: 'immediate' },
+  { id: '17', category: '重要物品', name: '小額現金與零錢 (避開停電/斷網投幣使用，隨行攜帶)', hasIt: false, urgency: 'immediate' },
+  { id: '18', category: '重要物品', name: '存摺或產權證明影本 (儲置於安全固定處防洪)', hasIt: false, urgency: 'routine' },
+  
   // 求生工具
-  { id: '17', category: '求生工具', name: '手電筒', hasIt: false },
-  { id: '18', category: '求生工具', name: '備用電池', hasIt: false },
-  { id: '19', category: '求生工具', name: '瑞士刀', hasIt: false },
-  { id: '20', category: '求生工具', name: '哨子', hasIt: false },
-  { id: '21', category: '求生工具', name: '打火機/火柴', hasIt: false },
+  { id: '19', category: '求生工具', name: '高亮度 LED 手電筒/頭燈', hasIt: false, urgency: 'immediate' },
+  { id: '20', category: '求生工具', name: '適配備用全新乾電池', hasIt: false, urgency: 'immediate' },
+  { id: '21', category: '求生工具', name: '高頻求救哨 (懸掛於隨身避難包外側)', hasIt: false, urgency: 'immediate' },
+  { id: '22', category: '求生工具', name: '防風打火機或防災火柴', hasIt: false, urgency: 'immediate' },
+  { id: '23', category: '求生工具', name: '多功能瑞士刀/工具鉗 (居家應急排除硬體)', hasIt: false, urgency: 'routine' },
+  
   // 其他備品
-  { id: '22', category: '其他備品', name: '衛生紙', hasIt: false },
-  { id: '23', category: '其他備品', name: '濕紙巾', hasIt: false },
-  { id: '24', category: '其他備品', name: '口罩', hasIt: false },
-  { id: '25', category: '其他備品', name: '充飽電的行動電源', hasIt: false },
-  { id: '26', category: '其他備品', name: '備用充電線', hasIt: false },
+  { id: '24', category: '其他備品', name: '充飽電行動電源與高壽命充電線 (手機續航關鍵)', hasIt: false, urgency: 'immediate' },
+  { id: '25', category: '其他備品', name: '隨身防護口罩 (防塵防煙防病毒)', hasIt: false, urgency: 'immediate' },
+  { id: '26', category: '其他備品', name: '隨攜包裝衛生紙與手部消毒酒精', hasIt: false, urgency: 'immediate' },
+  { id: '27', category: '其他備品', name: '高濕度厚款潔膚擦拭巾 (居家不便斷水期清潔)', hasIt: false, urgency: 'routine' },
 ];

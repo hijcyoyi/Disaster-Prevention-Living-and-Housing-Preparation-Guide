@@ -53,4 +53,5 @@ export interface SupplyItem {
   category: string;
   name: string;
   hasIt: boolean;
+  urgency?: 'immediate' | 'routine';
 }
