@@ -3,6 +3,7 @@ export interface FamilyProfile {
   hasElderly: boolean;
   hasChronicIllness: boolean;
   hasMobilityIssues: boolean;
+  hasDeliveryRider?: boolean;
 }
 
 export interface DisasterFactor {
@@ -26,6 +27,11 @@ export interface ActionableTimeline {
   next24h: string[];
 }
 
+export interface DeficiencyAnalysis {
+  weaknesses: string[];
+  improvements: string[];
+}
+
 export interface AIAnalysisResult {
   disasterRisk: DisasterRisk;
   suspensionIndicator: SuspensionIndicator;
@@ -33,6 +39,7 @@ export interface AIAnalysisResult {
   bagRecommendations: string[];
   actionableTimeline: ActionableTimeline;
   shelterGuidance?: ShelterGuidance;
+  deficiencyAnalysis?: DeficiencyAnalysis;
 }
 
 export interface ShelterGuidance {
