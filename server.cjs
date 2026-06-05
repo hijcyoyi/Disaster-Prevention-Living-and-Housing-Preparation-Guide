@@ -29,9 +29,9 @@ var import_genai = require("@google/genai");
 var import_dotenv = __toESM(require("dotenv"), 1);
 import_dotenv.default.config();
 function getAi(clientApiKey) {
-  const apiKey = clientApiKey && clientApiKey.trim() || process.env.GEMINI_API_KEY;
+  const apiKey = clientApiKey && clientApiKey.trim();
   if (!apiKey) {
-    throw new Error("\u627E\u4E0D\u5230\u6709\u6548\u7684 Gemini API \u91D1\u9470\u3002\u8ACB\u5728\u5DE6\u5074\u8A2D\u5B9A\u9762\u677F\u4E2D\u8F38\u5165\u60A8\u7684\u500B\u4EBA Gemini API \u91D1\u9470\uFF0C\u6216\u8ACB\u7BA1\u7406\u54E1\u5728\u7CFB\u7D71\u4E2D\u914D\u7F6E\u9810\u8A2D\u91D1\u9470\u3002");
+    throw new Error("\u8ACB\u5148\u5728\u5DE6\u4E0B\u65B9\u300CAI \u6838\u5FC3\u667A\u6167\u5F15\u64CE\u8A2D\u5B9A\u300D\u4E2D\u8F38\u5165\u4E26\u5132\u5B58\u60A8\u7684\u500B\u4EBA Gemini API \u91D1\u9470\u3002\u672C\u7CFB\u7D71\u4E26\u672A\u63D0\u4F9B\u9810\u8A2D\u7CFB\u7D71\u91D1\u9470\uFF0C\u60A8\u5FC5\u9808\u914D\u7F6E\u5C6C\u65BC\u60A8\u81EA\u5DF1\u7684\u91D1\u9470\u624D\u80FD\u4EAB\u6709\u7CBE\u6E96\u7684 AI \u5206\u6790\u3002");
   }
   return new import_genai.GoogleGenAI({
     apiKey,
