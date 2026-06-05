@@ -221,7 +221,7 @@ export function SuppliesInventory({ supplies, setSupplies, memberCount, setMembe
         {Object.entries(groupedSupplies).map(([category, items]) => (
           <div key={category} className="bg-[#FAF9F6]/80 border border-stone-200/80 p-5 rounded-xl flex flex-col gap-4">
             <div className="flex items-center justify-between">
-              <h4 className="text-sm font-bold text-stone-800 flex items-center gap-2">
+              <h4 className="text-base font-bold text-stone-800 flex items-center gap-2">
                 <div className={`w-7 h-7 rounded border flex items-center justify-center shrink-0 ${getCategoryBg(category)}`}>
                   {getCategoryIcon(category)}
                 </div>
@@ -295,7 +295,7 @@ export function SuppliesInventory({ supplies, setSupplies, memberCount, setMembe
                 value={customInputs[category] || ''}
                 onChange={(e) => setCustomInputs((prev) => ({ ...prev, [category]: e.target.value }))}
                 placeholder="➕ 新增自訂備品..."
-                className="flex-1 bg-white border border-stone-200/80 rounded px-2.5 py-1 text-xs text-stone-800 placeholder:text-stone-400 focus:outline-none focus:ring-1 focus:ring-stone-400 focus:border-stone-400 transition-all font-medium"
+                className="flex-1 bg-white border border-stone-200/80 rounded px-2.5 py-1.5 text-sm text-stone-800 placeholder:text-stone-400 focus:outline-none focus:ring-1 focus:ring-stone-400 focus:border-stone-400 transition-all font-medium"
               />
               <button
                 type="submit"

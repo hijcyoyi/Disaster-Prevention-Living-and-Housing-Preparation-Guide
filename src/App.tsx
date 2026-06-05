@@ -312,6 +312,16 @@ ${missingList || '所有物資皆已備妥！'}
             "疏散避難時切勿撐傘（易受巨風折斷刺傷或拉扯跌倒），應穿著合身雨衣與硬底鞋。",
             "外勤或撤離行經騎樓時嚴防掉落的鐵皮招牌或空調外機，強風阻力大時請就近在水泥鋼筋建築內避風避雨。"
           ]
+        },
+        deficiencyAnalysis: {
+          weaknesses: [
+            "缺少關鍵［行動電源］：在颱風天極易遇到大範圍強風折斷電線桿導致停電狀況。若無儲備足夠之行動電源，手機通訊及最新災害預警公告獲取將立即陷入癱瘓。",
+            "外送員車輛防磨與防滑低落：颱風停班宣告前，依舊有出勤想法，但未全面檢測輪胎紋深度。在10級強陣風中極易遭遇偏離打滑摔車致命威脅。"
+          ],
+          improvements: [
+            "在強風雨登陸前，預備並充飽至少 2 組 25,000mAh 大容量行動電源，確保 72 小時不斷網不斷電訊號。",
+            "應自主落實風力監測：一旦本市宣布停班停課或陣風判定超標，外送人員配合平臺管制強制關閉下單，杜絕涉水外派冒險。"
+          ]
         }
       });
     } else if (scenario === 'rain') {
@@ -366,6 +376,16 @@ ${missingList || '所有物資皆已備妥！'}
             "避難路線應避開大溪流支流高水流點，注意頭部安全防範落石砸傷，一律往垂直於泥石流流動方向之高度撤避。",
             "若行經路面積水或土砂覆蓋，嚴格禁止徒步涉水跨越，泥流 15 公分以上即可捲走成年人。"
           ]
+        },
+        deficiencyAnalysis: {
+          weaknesses: [
+            "缺少重要［常備及慢性病藥物］：山區土石流高潛勢地帶，暴雨易造成「受困孤島效應」。若長者慢性病用藥不全，面臨斷藥及救護車因道路中斷無法抵達的嚴重生命威脅。",
+            "避難行動垂直與水平判斷遲緩：家有重病、行動不便與高齡長輩，在土石流紅警戒時若仍留在一樓或試圖深夜摸黑隨直覺自行下山，極易因道路坍方、急流受困跌倒。"
+          ],
+          improvements: [
+            "在大型鋒面或梅雨大豪雨登陸前，務必前往合約診所預備 14 天份的慢性病處方藥，多重夾鏈密封放置防災包。",
+            "果斷執行「白天預警撤離」：一收到鄉公所或村長黃、紅土石流撤警通知，乘白晝安全時段跟隨民政安置專車撤往樂野中心，堅決反對深夜涉水。"
+          ]
         }
       });
     } else if (scenario === 'earthquake') {
@@ -419,6 +439,16 @@ ${missingList || '所有物資皆已備妥！'}
           safetyCriteria: [
             "離開建築物撤離時，請使用安全帽或隨身皮包、厚外套保護頭部，避開外牆剝落的大理石、冷氣室外機及電線杆。",
             "避難方向堅持一律往大面積空曠地、防災公園撤離，切勿在兩側多為高聳玻璃帷幕大樓的狹小巷弄內逗留。"
+          ]
+        },
+        deficiencyAnalysis: {
+          weaknesses: [
+            "缺少核心配備［手電筒］：強烈地震極易引發大區域變電箱墜毀與跳電斷電。若全室漆黑、重型家具倒塌、地表布滿玻璃碎片，缺少照明將極大概率引發割傷、踩空或家具二次壓傷骨折。",
+            "幼兒抱持逃生逃生路線遭鞋物堆積：玄關及主要走廊堆放非固定鞋櫃與空盒雜物，晃動摔倒將完全堵塞出口，延誤寶貴的黃金避震開門逃生時間。"
+          ],
+          improvements: [
+            "房門內側、客廳及床頭一律配置插座式或感應式免握應急手電筒，確保一斷電即刻取得光明。",
+            "立刻清理出門逃生寬度至少 90 公分之淨空通道，家庭重型電器或玻璃掛件予以 L 型鐵件防倒固定處理。"
           ]
         }
       });
@@ -534,6 +564,29 @@ ${missingList || '所有物資皆已備妥！'}
       </header>
 
       <main className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-10">
+        {/* Static Hosting Warning Banner */}
+        {(() => {
+          const isStaticHost = typeof window !== 'undefined' && 
+            (window.location.hostname.endsWith('github.io') || 
+             (window.location.hostname.includes('localhost') === false && !window.location.port));
+          if (isStaticHost && !customApiKey) {
+            return (
+              <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center gap-3 shadow-none">
+                <div className="w-9 h-9 rounded bg-amber-100/80 flex items-center justify-center shrink-0 border border-amber-200">
+                  <AlertTriangle className="w-5 h-5 text-amber-700 font-extrabold" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="text-sm font-extrabold text-[#7f1d1d] tracking-wide">⚠️ 檢測至目前運行於 GitHub Pages 等靜態託管環境</h4>
+                  <p className="text-xs text-stone-600 font-semibold leading-relaxed mt-0.5">
+                    由於靜態託管無運作後端伺服器 (Server)，若需使用完整的 <strong className="text-stone-850 font-bold">AI 災害評估、地質分析及對話諮詢</strong>，請於左下角「金鑰與位置設定」中貼上您的個人 <strong className="text-[#7f1d1d] font-extrabold">Gemini API 金鑰 (API Key)</strong>。系統將啟動安全的專屬前端直連通道，讓您直接向 Google API 獲得頂尖防災分析！
+                  </p>
+                </div>
+              </div>
+            );
+          }
+          return null;
+        })()}
+
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
           
           {/* Left Sidebar: Controls & Settings */}
@@ -544,7 +597,7 @@ ${missingList || '所有物資皆已備妥！'}
                   <span className="w-1.5 h-5 bg-[#7f1d1d] block rounded-full shrink-0"></span>
                   家戶特徵與空間設定
                 </h2>
-                <p className="text-xs text-stone-500 leading-relaxed font-medium">配置您確實的居住位置與家人狀態，系統將透過地理潛勢模型為您客製專屬的安心生活指引。</p>
+                <p className="text-sm text-stone-600 leading-relaxed font-semibold">配置您確實的居住位置與家人狀態，系統將透過地理潛勢模型為您客製專屬的安心生活指引。</p>
               </div>
 
               {/* API Key settings card */}
@@ -557,8 +610,8 @@ ${missingList || '所有物資皆已備妥！'}
                   <span className="text-[9px] bg-stone-100 text-stone-500 font-mono font-bold px-1.5 py-0.5 rounded border border-stone-250/20">CONFIG</span>
                 </div>
                 <div className="flex flex-col gap-3">
-                  <p className="text-xs text-stone-500 leading-relaxed font-semibold">
-                    預設使用系統公用金鑰。若遇伺服器擁擠，可貼上個人專屬的 <strong className="text-stone-700 font-extrabold">Gemini API Key</strong> 避免排隊：
+                  <p className="text-sm text-stone-600 leading-relaxed font-bold">
+                    預設使用系統公用金鑰。若遇伺服器擁擠，可貼上個人專屬的 <strong className="text-stone-750 font-extrabold">Gemini API Key</strong> 避免排隊：
                   </p>
                   
                   <div className="relative">
@@ -567,7 +620,7 @@ ${missingList || '所有物資皆已備妥！'}
                       value={customApiKey}
                       onChange={(e) => handleSaveApiKey(e.target.value)}
                       placeholder="請貼上您的 API 金鑰 (AI_...)"
-                      className="w-full bg-stone-50/50 hover:bg-stone-50 focus:bg-white border border-stone-200 rounded-lg pl-3 pr-10 py-2.5 text-stone-900 text-xs focus:outline-none focus:ring-1 focus:ring-stone-400 focus:border-stone-400 transition-all font-mono placeholder:text-stone-400"
+                      className="w-full bg-stone-50/50 hover:bg-stone-50 focus:bg-white border border-stone-200 rounded-lg pl-3 pr-10 py-2.5 text-stone-900 text-sm focus:outline-none focus:ring-1 focus:ring-stone-400 focus:border-stone-400 transition-all font-mono placeholder:text-stone-400"
                     />
                     <button
                       type="button"
@@ -615,7 +668,7 @@ ${missingList || '所有物資皆已備妥！'}
                       value={location}
                       onChange={(e) => setLocation(e.target.value)}
                       placeholder="請輸入地址、鄉鎮或地標..."
-                      className="w-full bg-stone-50/50 hover:bg-stone-50 focus:bg-white border border-stone-200 rounded-lg pl-3 pr-10 py-2.5 text-stone-900 text-sm focus:outline-none focus:ring-1 focus:ring-stone-400 focus:border-stone-400 transition-all font-semibold"
+                      className="w-full bg-stone-50/50 hover:bg-stone-50 focus:bg-white border border-stone-200 rounded-lg pl-3 pr-10 py-2.5 text-stone-900 text-base focus:outline-none focus:ring-1 focus:ring-stone-400 focus:border-stone-400 transition-all font-semibold"
                     />
                     <button
                       type="button"
@@ -637,7 +690,7 @@ ${missingList || '所有物資皆已備妥！'}
                       type="button"
                       onClick={handleGeolocate}
                       disabled={isLocating || isAnalyzingEnv}
-                      className="select-none border border-stone-200 bg-white hover:bg-stone-50 text-stone-700 rounded-lg py-2 px-3 text-xs font-bold transition-all flex items-center justify-center gap-1.5 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed shadow-none cursor-pointer"
+                      className="select-none border border-stone-200 bg-white hover:bg-stone-50 text-stone-700 rounded-lg py-2 px-3 text-sm font-bold transition-all flex items-center justify-center gap-1.5 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed shadow-none cursor-pointer"
                     >
                       {isLocating ? (
                         <>
@@ -656,7 +709,7 @@ ${missingList || '所有物資皆已備妥！'}
                       type="button"
                       onClick={handleAnalyzeEnvironment}
                       disabled={isAnalyzingEnv || isLocating || !location.trim()}
-                      className="relative overflow-hidden group select-none border border-stone-200 bg-[#f4f1eb]/60 hover:bg-[#f4f1eb] text-stone-750 rounded-lg py-2 px-3 text-xs font-bold transition-all flex items-center justify-center gap-1.5 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed shadow-none cursor-pointer"
+                      className="relative overflow-hidden group select-none border border-stone-200 bg-[#f4f1eb]/60 hover:bg-[#f4f1eb] text-stone-750 rounded-lg py-2 px-3 text-sm font-bold transition-all flex items-center justify-center gap-1.5 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed shadow-none cursor-pointer"
                     >
                       {isAnalyzingEnv ? (
                         <>
@@ -688,7 +741,7 @@ ${missingList || '所有物資皆已備妥！'}
                     value={environmentDesc}
                     onChange={(e) => setEnvironmentDesc(e.target.value)}
                     placeholder="點擊「地理分析」自主取得環境。此描述是 AI 計算排水、坡度落石風險的重要參考依據..."
-                    className="w-full bg-stone-50/50 hover:bg-stone-50 focus:bg-white border border-stone-200 rounded-lg px-3 py-2.5 text-stone-900 text-xs focus:outline-none focus:ring-1 focus:ring-stone-400 focus:border-stone-400 transition-all placeholder:text-stone-400 font-semibold resize-none h-28"
+                    className="w-full bg-stone-50/50 hover:bg-stone-50 focus:bg-white border border-stone-200 rounded-lg px-3 py-2.5 text-stone-900 text-sm focus:outline-none focus:ring-1 focus:ring-stone-400 focus:border-stone-400 transition-all placeholder:text-stone-400 font-semibold resize-none h-28"
                   />
                   {!environmentDesc && (
                     <div className="text-[11px] font-bold text-[#7f1d1d] flex items-center gap-1.5 bg-[#7f1d1d]/5 p-2 rounded border border-[#7f1d1d]/10">
@@ -732,8 +785,8 @@ ${missingList || '所有物資皆已備妥！'}
                           {checked && <Check className="w-3 h-3 text-white" strokeWidth={3.5} />}
                         </div>
                         <div className="flex flex-col select-none">
-                          <span className={`text-[13px] font-bold transition-colors ${checked ? 'text-[#7f1d1d]' : 'text-stone-750'}`}>{item.label}</span>
-                          <span className="text-[11px] text-stone-500 mt-0.5 leading-snug font-medium">{item.desc}</span>
+                          <span className={`text-[15px] font-bold transition-colors ${checked ? 'text-[#7f1d1d]' : 'text-stone-750'}`}>{item.label}</span>
+                          <span className="text-[13px] text-stone-500 mt-0.5 leading-snug font-semibold">{item.desc}</span>
                         </div>
                       </label>
                     );
@@ -745,7 +798,7 @@ ${missingList || '所有物資皆已備妥！'}
             <button
               onClick={handleAnalyze}
               disabled={isAnalyzing || !location}
-              className="w-full relative overflow-hidden group bg-[#7f1d1d] hover:bg-[#631414] text-white rounded-xl py-4 px-6 font-bold text-sm transition-all active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-[0_4px_12px_rgba(127,29,29,0.15)] hover:shadow-[0_6px_16px_rgba(127,29,29,0.25)] cursor-pointer"
+              className="w-full relative overflow-hidden group bg-[#7f1d1d] hover:bg-[#631414] text-white rounded-xl py-4 px-6 font-bold text-base transition-all active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-[0_4px_12px_rgba(127,29,29,0.15)] hover:shadow-[0_6px_16px_rgba(127,29,29,0.25)] cursor-pointer"
             >
               <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
               {isAnalyzing ? (
@@ -1430,7 +1483,10 @@ ${missingList || '所有物資皆已備妥！'}
                       <div className="w-6 h-6 rounded bg-[#f4f1eb] text-stone-700 flex items-center justify-center">
                         <UserCircle2 className="w-4 h-4" />
                       </div>
-                      <h3 className="text-sm font-bold tracking-wider text-stone-800 font-sans">防災諮詢顧問</h3>
+                      <h3 className="text-sm font-bold tracking-wider text-stone-800 font-sans flex items-center gap-1.5">
+                        <span>AI 防災諮詢顧問</span>
+                        <span className="text-[10px] bg-[#7f1d1d]/10 text-[#7f1d1d] font-extrabold px-1.5 py-0.5 rounded-sm line-height-none shrink-0 scale-95 border border-[#7f1d1d]/15">AI</span>
+                      </h3>
                     </div>
                     <div className="flex items-center gap-1.5">
                        <div className="w-1.5 h-1.5 rounded-full bg-stone-500 animate-pulse" />
@@ -1442,8 +1498,8 @@ ${missingList || '所有物資皆已備妥！'}
                     {chatHistory.length === 0 && (
                       <div className="text-center text-stone-600 text-sm my-auto bg-white p-5 rounded-lg border border-stone-200 max-w-xs mx-auto shadow-none">
                         <UserCircle2 className="w-8 h-8 text-stone-400 mx-auto mb-2" strokeWidth={1.5} />
-                        <p className="font-bold text-sm text-stone-700 mb-1">對話諮詢</p>
-                        <p className="text-stone-500 leading-relaxed text-xs">有任何防災與特定物資問題？隨時輸入向我確認與諮詢。</p>
+                        <p className="font-bold text-sm text-stone-700 mb-1">AI 專屬對話諮詢與缺點分析</p>
+                        <p className="text-stone-500 leading-relaxed text-sm">有任何防災與特定物資問題？隨時輸入，由 AI 防災專員為您深度解答、分析漏洞並提供全方位安全指引。</p>
                       </div>
                     )}
                     

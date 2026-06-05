@@ -87,7 +87,7 @@ async function startServer() {
       `;
 
       const response = await getAi(clientApiKey).models.generateContent({
-        model: "gemini-2.5-flash",
+        model: "gemini-3.5-flash",
         contents: prompt,
         config: {
           tools: [{ googleSearch: {} }]
@@ -138,7 +138,7 @@ async function startServer() {
       `;
 
       const response = await getAi(clientApiKey).models.generateContent({
-        model: "gemini-2.5-flash",
+        model: "gemini-3.5-flash",
         contents: prompt,
         config: {
           tools: [{ googleSearch: {} }]
@@ -170,11 +170,16 @@ async function startServer() {
       居住環境描述 (請考慮其潛在風險)：\${environmentDesc || '未提供'}
 
       請以專業、務實、嚴謹的語氣，回答使用者的問題。給出實踐性高的專家防護動作，避免空泛呼籲。
+      
+      特別注意（分析缺點與註明 AI）：
+      你在對話中，必須主動且嚴厲地分析使用者在住宅環境、物資備置上的「安全缺點與潛在漏洞」（例如缺少關鍵物資時的危險、長者照護的安全盲點、逃生動線堆積等弊端），並給予明確的改善建議以彌補缺漏。
+      同時，你務必在回答的最底部，另起一行明確註明：「（本分析與建議由 AI 防災助手整合生成，僅供避難整備參考）」以符合 AI 提示標記政策。
+
       問題：\${message}
       `;
 
       const response = await getAi(clientApiKey).models.generateContent({
-        model: "gemini-2.5-flash",
+        model: "gemini-3.5-flash",
         contents: prompt,
       });
 
