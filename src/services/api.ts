@@ -65,27 +65,35 @@ async function callGeminiDirectly(prompt: string, responseType: "json" | "text" 
     ];
   }
 
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(requestBody)
-  });
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(requestBody)
+    });
 
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    const errMsg = errorData.error?.message || `連線錯誤 (HTTP ${res.status})`;
-    throw new Error(`直接提交 Google API 失敗: ${errMsg}`);
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      const errMsg = errorData.error?.message || `連線錯誤 (HTTP ${res.status})`;
+      throw new Error(errMsg);
+    }
+
+    const result = await res.json();
+    const textVal = result.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!textVal) {
+      throw new Error("Google Gemini API 回傳了空的文案結果。");
+    }
+
+    return textVal;
+  } catch (err: any) {
+    if (useSearch) {
+      console.warn("Direct API call with googleSearch failed, retrying without live search tool:", err);
+      return callGeminiDirectly(prompt, responseType, false);
+    }
+    throw new Error(`直接提交 Google API 失敗: ${err.message || err}`);
   }
-
-  const result = await res.json();
-  const textVal = result.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!textVal) {
-    throw new Error("Google Gemini API 回傳了空的文案結果。");
-  }
-
-  return textVal;
 }
 
 /**
@@ -98,7 +106,7 @@ export async function analyzeRisk(
   missingItems: string[]
 ): Promise<AIAnalysisResult> {
   const customKey = localStorage.getItem("custom_gemini_key");
-  const isStaticHosting = window.location.hostname.endsWith('github.io') || window.location.hostname.includes('localhost') === false && !window.location.port;
+  const isStaticHosting = window.location.hostname.endsWith('github.io');
 
   // 如果是在 GitHub Pages 靜態託管且有 API 金鑰，或者後端回應不可用，直接進行前端呼叫
   if (isStaticHosting && customKey && customKey.trim()) {
@@ -190,7 +198,7 @@ export async function sendChatMessage(params: {
   currentRisk: string;
 }): Promise<{ reply: string }> {
   const customKey = localStorage.getItem("custom_gemini_key");
-  const isStaticHosting = window.location.hostname.endsWith('github.io') || window.location.hostname.includes('localhost') === false && !window.location.port;
+  const isStaticHosting = window.location.hostname.endsWith('github.io');
 
   if (isStaticHosting && customKey && customKey.trim()) {
     const prompt = `
@@ -237,7 +245,7 @@ export async function sendChatMessage(params: {
  */
 export async function analyzeEnvironment(location: string): Promise<{ environmentDesc: string }> {
   const customKey = localStorage.getItem("custom_gemini_key");
-  const isStaticHosting = window.location.hostname.endsWith('github.io') || window.location.hostname.includes('localhost') === false && !window.location.port;
+  const isStaticHosting = window.location.hostname.endsWith('github.io');
 
   if (isStaticHosting && customKey && customKey.trim()) {
     const prompt = `

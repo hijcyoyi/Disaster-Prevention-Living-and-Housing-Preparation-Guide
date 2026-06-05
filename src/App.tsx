@@ -566,9 +566,7 @@ ${missingList || '所有物資皆已備妥！'}
       <main className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-10">
         {/* Static Hosting Warning Banner */}
         {(() => {
-          const isStaticHost = typeof window !== 'undefined' && 
-            (window.location.hostname.endsWith('github.io') || 
-             (window.location.hostname.includes('localhost') === false && !window.location.port));
+          const isStaticHost = typeof window !== 'undefined' && window.location.hostname.endsWith('github.io');
           if (isStaticHost && !customApiKey) {
             return (
               <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center gap-3 shadow-none">

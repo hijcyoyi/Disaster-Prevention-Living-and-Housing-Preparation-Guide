@@ -86,13 +86,22 @@ async function startServer() {
       }
       `;
 
-      const response = await getAi(clientApiKey).models.generateContent({
-        model: "gemini-3.5-flash",
-        contents: prompt,
-        config: {
-          tools: [{ googleSearch: {} }]
-        },
-      });
+      let response;
+      try {
+        response = await getAi(clientApiKey).models.generateContent({
+          model: "gemini-2.5-flash",
+          contents: prompt,
+          config: {
+            tools: [{ googleSearch: {} }]
+          },
+        });
+      } catch (searchError: any) {
+        console.warn("API Call with Google Search tool failed, retrying without active Google Search:", searchError);
+        response = await getAi(clientApiKey).models.generateContent({
+          model: "gemini-2.5-flash",
+          contents: prompt,
+        });
+      }
 
       let responseText = response.text || "{}";
       responseText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
@@ -116,9 +125,9 @@ async function startServer() {
       const prompt = `
       你是一位頂尖的地理與地質防災專家，對台灣的行政區劃、地勢起伏、歷史災害熱點、水文分佈與斷層帶分佈具有極其詳盡的知識。
       
-      請依據使用者輸入的位置/地址進行深度分析：\${location}。
+      請依據使用者輸入的位置/地址進行深度分析：${location}。
       
-      請首先配合 Google Search 工具，查詢關於「台灣 \${location} 淹水 斷層 地質 土石流 災害歷史」等相關真實的地理特點與災害潛勢。
+      請首先配合 Google Search 工具，查詢關於「台灣 ${location} 淹水 斷層 地質 土石流 災害歷史」等相關真實的地理特點與災害潛勢。
       
       接著，進行全面地理與環境判讀，包含以下幾大要點：
       1. 地形起伏與水體關係（是否靠山、位在山腳/坡度大、近順向坡山區、低窪盆地、或河流排水通道附近）。
@@ -137,13 +146,22 @@ async function startServer() {
       }
       `;
 
-      const response = await getAi(clientApiKey).models.generateContent({
-        model: "gemini-3.5-flash",
-        contents: prompt,
-        config: {
-          tools: [{ googleSearch: {} }]
-        },
-      });
+      let response;
+      try {
+        response = await getAi(clientApiKey).models.generateContent({
+          model: "gemini-2.5-flash",
+          contents: prompt,
+          config: {
+            tools: [{ googleSearch: {} }]
+          },
+        });
+      } catch (searchError: any) {
+        console.warn("Environment analysis with Google Search tool failed, retrying without active Google Search:", searchError);
+        response = await getAi(clientApiKey).models.generateContent({
+          model: "gemini-2.5-flash",
+          contents: prompt,
+        });
+      }
 
       let responseText = response.text || "{}";
       responseText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
@@ -163,11 +181,11 @@ async function startServer() {
       
       const prompt = `
       你是一位擁有40年經驗的「AI資深防災專家」。
-      使用者位於：\${location || '未提供'}
-      目前系統評估風險總體等級：\${currentRisk || '未知'}
+      使用者位於：${location || '未提供'}
+      目前系統評估風險總體等級：${currentRisk || '未知'}
       
-      家庭狀況包含：幼兒(\${familyProfile?.hasToddler})、老人(\${familyProfile?.hasElderly})、慢性病患(\${familyProfile?.hasChronicIllness})、行動不便者(\${familyProfile?.hasMobilityIssues})、外送員(\${familyProfile?.hasDeliveryRider})
-      居住環境描述 (請考慮其潛在風險)：\${environmentDesc || '未提供'}
+      家庭狀況包含：幼兒(${familyProfile?.hasToddler})、老人(${familyProfile?.hasElderly})、慢性病患(${familyProfile?.hasChronicIllness})、行動不便者(${familyProfile?.hasMobilityIssues})、外送員(${familyProfile?.hasDeliveryRider})
+      居住環境描述 (請考慮其潛在風險)：${environmentDesc || '未提供'}
 
       請以專業、務實、嚴謹的語氣，回答使用者的問題。給出實踐性高的專家防護動作，避免空泛呼籲。
       
@@ -175,11 +193,11 @@ async function startServer() {
       你在對話中，必須主動且嚴厲地分析使用者在住宅環境、物資備置上的「安全缺點與潛在漏洞」（例如缺少關鍵物資時的危險、長者照護的安全盲點、逃生動線堆積等弊端），並給予明確的改善建議以彌補缺漏。
       同時，你務必在回答的最底部，另起一行明確註明：「（本分析與建議由 AI 防災助手整合生成，僅供避難整備參考）」以符合 AI 提示標記政策。
 
-      問題：\${message}
+      問題：${message}
       `;
 
       const response = await getAi(clientApiKey).models.generateContent({
-        model: "gemini-3.5-flash",
+        model: "gemini-2.5-flash",
         contents: prompt,
       });
 
