@@ -7,6 +7,7 @@ interface SuppliesInventoryProps {
   setSupplies: React.Dispatch<React.SetStateAction<SupplyItem[]>>;
   memberCount: number;
   setMemberCount: React.Dispatch<React.SetStateAction<number>>;
+  isSidebar?: boolean;
 }
 
 const getCategoryIcon = (category: string) => {
@@ -102,7 +103,7 @@ const getDynamicScaleInfo = (name: string, memberCount: number): string => {
   return '';
 };
 
-export function SuppliesInventory({ supplies, setSupplies, memberCount, setMemberCount }: SuppliesInventoryProps) {
+export function SuppliesInventory({ supplies, setSupplies, memberCount, setMemberCount, isSidebar = false }: SuppliesInventoryProps) {
   const [customInputs, setCustomInputs] = useState<Record<string, string>>({});
 
 
@@ -151,25 +152,27 @@ export function SuppliesInventory({ supplies, setSupplies, memberCount, setMembe
   });
 
   return (
-    <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-6 xl:p-8 flex flex-col gap-6 w-full font-sans">
-      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 border-b border-stone-150 pb-5">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-5 justify-between xl:justify-start w-full xl:w-auto">
+    <div className={`bg-white rounded-xl ${isSidebar ? 'p-1.5 flex flex-col gap-5 border-none shadow-none' : 'border border-stone-200 shadow-sm p-6 xl:p-8 flex flex-col gap-6'} w-full font-sans`}>
+      <div className={`flex flex-col ${isSidebar ? 'gap-4 pb-4' : 'xl:flex-row xl:items-center justify-between gap-6 pb-5'} border-b border-stone-150`}>
+        <div className={`flex flex-col ${isSidebar ? 'gap-3.5' : 'sm:flex-row sm:items-center gap-5 justify-between xl:justify-start'} w-full xl:w-auto`}>
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-lg bg-[#7f1d1d] flex items-center justify-center text-white shadow-sm">
-               <Check className="w-6 h-6" strokeWidth={2.5} />
+            <div className="w-10 h-10 rounded-lg bg-[#7f1d1d] flex items-center justify-center text-white shadow-sm shrink-0">
+               <Check className="w-5 h-5" strokeWidth={2.5} />
             </div>
             <div>
-              <h3 className="text-lg font-bold tracking-tight text-stone-900">
+              <h3 className="text-base font-bold tracking-tight text-stone-900">
                 防災避難備品盤點
               </h3>
-              <p className="text-sm font-medium text-stone-500 mt-1">簡約、有條理地盤點日常及應急物資</p>
+              <p className="text-xs font-semibold text-stone-500 mt-0.5">簡約、有條理地盤點日常及應急物資</p>
             </div>
           </div>
 
           {/* 整備人數設定 */}
-          <div className="flex items-center gap-2 bg-[#f5f4f0] border border-stone-200 px-3 py-1.5 rounded-lg shrink-0">
-            <Users className="w-3.5 h-3.5 text-stone-600" />
-            <span className="text-sm font-bold text-stone-700">避難人數：</span>
+          <div className="flex items-center justify-between sm:justify-start gap-2 bg-[#f5f4f0] border border-stone-200 px-3 py-1.5 rounded-lg shrink-0">
+            <div className="flex items-center gap-1.5">
+              <Users className="w-3.5 h-3.5 text-stone-600" />
+              <span className="text-xs font-bold text-stone-700">避難人數：</span>
+            </div>
             <div className="flex items-center bg-white border border-stone-200 rounded-md">
               <button
                 type="button"
@@ -178,7 +181,7 @@ export function SuppliesInventory({ supplies, setSupplies, memberCount, setMembe
               >
                 －
               </button>
-              <span className="text-sm font-bold text-stone-900 px-2 min-w-[16px] text-center select-none">
+              <span className="text-xs font-bold text-stone-900 px-1.5 min-w-[16px] text-center select-none">
                 {memberCount}
               </span>
               <button
@@ -189,25 +192,25 @@ export function SuppliesInventory({ supplies, setSupplies, memberCount, setMembe
                 ＋
               </button>
             </div>
-            <span className="text-xs font-bold text-stone-500">
-              {memberCount === 1 ? '單人份' : `多人 (${memberCount} 人份)`}
+            <span className="text-[10px] font-bold text-stone-500">
+              {memberCount === 1 ? '單人' : `${memberCount}人`}
             </span>
           </div>
         </div>
         
-        <div className="flex flex-col sm:flex-row sm:items-center gap-4 min-w-[280px]">
+        <div className={`flex flex-col ${isSidebar ? 'gap-3 w-full' : 'sm:flex-row sm:items-center gap-4 min-w-[280px]'}`}>
           <div className="flex items-center justify-between gap-3 bg-[#f5f4f0] border border-stone-200/60 px-4 py-2 rounded-lg shrink-0">
-             <span className="text-sm font-semibold text-stone-600">已備妥</span>
-             <span className="text-base font-bold text-[#7f1d1d]">
-               {completedCount} <span className="text-stone-400 text-xs font-normal">/ {supplies.length} 件</span>
+             <span className="text-xs font-bold text-stone-600">已備妥</span>
+             <span className="text-sm font-extrabold text-[#7f1d1d]">
+               {completedCount} <span className="text-stone-400 text-[10px] font-normal">/ {supplies.length} 件</span>
              </span>
           </div>
-          <div className="flex-1 min-w-[160px]">
-             <div className="flex justify-between items-end text-sm font-bold tracking-wide text-stone-500 mb-1.5">
+          <div className="flex-1 w-full min-w-[120px]">
+             <div className="flex justify-between items-end text-[11px] font-bold tracking-wide text-stone-500 mb-1">
               <span>準備進度</span>
               <span className="text-[#7f1d1d] font-bold">{progressPercent}%</span>
             </div>
-            <div className="w-full bg-stone-100 h-2 rounded-full overflow-hidden">
+            <div className="w-full bg-stone-100 h-1.5 rounded-full overflow-hidden">
               <div 
                 className="bg-[#7f1d1d] h-full rounded-full transition-all duration-700 ease-out" 
                 style={{ width: `${progressPercent}%` }}
@@ -217,17 +220,17 @@ export function SuppliesInventory({ supplies, setSupplies, memberCount, setMembe
         </div>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 max-h-[360px] lg:max-h-none overflow-y-auto custom-scrollbar">
+      <div className={`grid gap-4 overflow-y-auto custom-scrollbar ${isSidebar ? 'grid-cols-1 max-h-[550px]' : 'grid-cols-1 md:grid-cols-2 xl:grid-cols-3 max-h-[360px] lg:max-h-none'}`}>
         {Object.entries(groupedSupplies).map(([category, items]) => (
-          <div key={category} className="bg-[#FAF9F6]/80 border border-stone-200/80 p-5 rounded-xl flex flex-col gap-4">
+          <div key={category} className={`bg-[#FAF9F6]/85 border border-stone-200/80 rounded-xl flex flex-col gap-4 ${isSidebar ? 'p-3.5' : 'p-5'}`}>
             <div className="flex items-center justify-between">
-              <h4 className="text-base font-bold text-stone-800 flex items-center gap-2">
-                <div className={`w-7 h-7 rounded border flex items-center justify-center shrink-0 ${getCategoryBg(category)}`}>
+              <h4 className="text-sm font-bold text-stone-800 flex items-center gap-1.5">
+                <div className={`w-6 h-6 rounded border flex items-center justify-center shrink-0 ${getCategoryBg(category)}`}>
                   {getCategoryIcon(category)}
                 </div>
                 <span className="tracking-wide text-stone-800">{category}</span>
               </h4>
-              <span className="text-xs font-medium text-stone-500 bg-stone-100/80 px-2.5 py-0.5 rounded-full border border-stone-200/40">
+              <span className="text-[10px] font-bold text-stone-500 bg-stone-100/80 px-2 py-0.5 rounded-full border border-stone-200/40">
                 {items.filter(i => i.hasIt).length}/{items.length}
               </span>
             </div>

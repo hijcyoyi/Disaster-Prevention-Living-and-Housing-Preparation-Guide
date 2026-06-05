@@ -38,6 +38,7 @@ export default function App() {
   const [chatHistory, setChatHistory] = useState<{role: 'user' | 'ai', text: string}[]>([]);
   const [isChatting, setIsChatting] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [sidebarTab, setSidebarTab] = useState<'supplies' | 'chat'>('supplies');
 
   const handleSaveApiKey = (newKey: string) => {
     setCustomApiKey(newKey);
@@ -602,14 +603,14 @@ ${missingList || '所有物資皆已備妥！'}
               <div className="bg-white rounded-2xl border border-stone-200/80 p-5 shadow-[0_2px_8px_-3px_rgba(0,0,0,0.02)] transition-all hover:border-stone-300 hover:shadow-[0_4px_12px_-3px_rgba(0,0,0,0.04)]">
                 <div className="flex items-center justify-between mb-3 border-b border-stone-100 pb-2.5">
                   <h3 className="text-xs font-extrabold text-stone-700 flex items-center gap-2 uppercase tracking-wide">
-                    <Key className="w-4 h-4 text-[#7f1d1d]" />
-                    AI 核心智慧引擎設定
+                     <Key className="w-4 h-4 text-[#7f1d1d]" />
+                     AI 核心智慧引擎設定
                   </h3>
-                  <span className="text-[9px] bg-stone-100 text-stone-500 font-mono font-bold px-1.5 py-0.5 rounded border border-stone-250/20">CONFIG</span>
+                  <span className="text-[9px] bg-red-50 text-[#7f1d1d] font-mono font-bold px-1.5 py-0.5 rounded border border-red-200/20">REQUIRED</span>
                 </div>
                 <div className="flex flex-col gap-3">
-                  <p className="text-sm text-stone-600 leading-relaxed font-bold">
-                    預設使用系統公用金鑰。若遇伺服器擁擠，可貼上個人專屬的 <strong className="text-stone-750 font-extrabold">Gemini API Key</strong> 避免排隊：
+                  <p className="text-sm text-stone-600 leading-relaxed font-semibold">
+                    此應用程式需配置个人的 <strong className="text-stone-750 font-extrabold">Gemini API Key</strong> 才能執行高度精準的 AI 災害及地理分析：
                   </p>
                   
                   <div className="relative">
@@ -617,7 +618,7 @@ ${missingList || '所有物資皆已備妥！'}
                       type={showApiKey ? "text" : "password"}
                       value={customApiKey}
                       onChange={(e) => handleSaveApiKey(e.target.value)}
-                      placeholder="請貼上您的 API 金鑰 (AI_...)"
+                      placeholder="請在此貼上您的 Gemini API Key (AI_...)"
                       className="w-full bg-stone-50/50 hover:bg-stone-50 focus:bg-white border border-stone-200 rounded-lg pl-3 pr-10 py-2.5 text-stone-900 text-sm focus:outline-none focus:ring-1 focus:ring-stone-400 focus:border-stone-400 transition-all font-mono placeholder:text-stone-400"
                     />
                     <button
@@ -635,9 +636,9 @@ ${missingList || '所有物資皆已備妥！'}
                   
                   <div className="flex items-center justify-between mt-1 px-1">
                     <div className="flex items-center gap-1.5">
-                      <div className={`w-1.5 h-1.5 rounded-full ${customApiKey ? "bg-emerald-500 animate-pulse" : "bg-stone-400"}`} />
+                      <div className={`w-1.5 h-1.5 rounded-full ${customApiKey ? "bg-emerald-500 animate-pulse" : "bg-red-500 animate-pulse"}`} />
                       <span className="text-[10px] font-extrabold text-stone-500 tracking-wider">
-                        {customApiKey ? "自訂金鑰運作中" : "預設金鑰運行中"}
+                        {customApiKey ? "個人金鑰運作中" : "尚未填寫 API 金鑰（AI 停用中）"}
                       </span>
                     </div>
                     {customApiKey && (
@@ -646,7 +647,7 @@ ${missingList || '所有物資皆已備妥！'}
                         onClick={() => handleSaveApiKey("")}
                         className="text-[11px] font-extrabold text-[#7f1d1d] hover:underline cursor-pointer"
                       >
-                        重置回預設
+                        清空金鑰
                       </button>
                     )}
                   </div>
@@ -1473,85 +1474,128 @@ ${missingList || '所有物資皆已備妥！'}
             )}
             </div>
               
-              {/* AI Chat Sidebar */}
+              {/* Sidebar Interface (Adaptive Tabs) */}
               <div className="xl:col-span-1 flex flex-col gap-6">
-                <div className="bg-white rounded-xl border border-stone-200 overflow-hidden flex flex-col h-[500px] xl:max-h-[850px] sticky top-24">
-                  <div className="bg-[#FAF9F6] border-b border-stone-200 p-4 shrink-0 flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-6 h-6 rounded bg-[#f4f1eb] text-stone-700 flex items-center justify-center">
-                        <UserCircle2 className="w-4 h-4" />
-                      </div>
-                      <h3 className="text-sm font-bold tracking-wider text-stone-800 font-sans flex items-center gap-1.5">
-                        <span>AI 防災諮詢顧問</span>
-                        <span className="text-[10px] bg-[#7f1d1d]/10 text-[#7f1d1d] font-extrabold px-1.5 py-0.5 rounded-sm line-height-none shrink-0 scale-95 border border-[#7f1d1d]/15">AI</span>
-                      </h3>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                       <div className="w-1.5 h-1.5 rounded-full bg-stone-500 animate-pulse" />
-                       <span className="text-xs font-bold text-stone-500">待命諮詢中</span>
-                    </div>
-                  </div>
+                <div className="bg-white rounded-xl border border-stone-200 overflow-hidden flex flex-col h-[650px] xl:max-h-[850px] sticky top-24">
                   
-                  <div className="flex-1 p-5 overflow-y-auto flex flex-col gap-4 bg-stone-50/20 custom-scrollbar">
-                    {chatHistory.length === 0 && (
-                      <div className="text-center text-stone-600 text-sm my-auto bg-white p-5 rounded-lg border border-stone-200 max-w-xs mx-auto shadow-none">
-                        <UserCircle2 className="w-8 h-8 text-stone-400 mx-auto mb-2" strokeWidth={1.5} />
-                        <p className="font-bold text-sm text-stone-700 mb-1">AI 專屬對話諮詢與缺點分析</p>
-                        <p className="text-stone-500 leading-relaxed text-sm">有任何防災與特定物資問題？隨時輸入，由 AI 防災專員為您深度解答、分析漏洞並提供全方位安全指引。</p>
-                      </div>
-                    )}
-                    
-                    {chatHistory.map((chat, idx) => (
-                      <div key={idx} className={`flex w-full ${chat.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`flex gap-3.5 max-w-[85%] ${chat.role === 'user' ? 'flex-row-reverse' : ''}`}>
-                          {chat.role === 'ai' && (
-                            <div className="w-6 h-6 rounded bg-stone-100 border border-stone-200 shadow-sm flex items-center justify-center shrink-0 mt-1">
-                              <Sparkles className="w-3.5 h-3.5 text-[#7f1d1d]" />
-                            </div>
-                          )}
-                          <div className={`p-3 rounded-lg shadow-none text-sm ${
-                            chat.role === 'user' 
-                              ? 'bg-stone-800 text-white font-medium' 
-                              : 'bg-[#f5f4f0] border border-stone-200 text-stone-800'
-                          }`}>
-                             <p className="leading-relaxed whitespace-pre-wrap">{chat.text}</p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-
-                    {isChatting && (
-                      <div className="flex w-full justify-start">
-                        <div className="flex gap-2.5 max-w-[85%]">
-                          <div className="w-6 h-6 rounded bg-stone-100 border border-stone-200 flex items-center justify-center shrink-0 mt-1">
-                            <Sparkles className="w-3.5 h-3.5 text-[#7f1d1d]" />
-                          </div>
-                          <div className="bg-[#f5f4f0] border border-stone-200 p-3 rounded-lg flex items-center gap-1.5 h-[32px]">
-                            <div className="w-1 h-1 bg-stone-400 rounded-full animate-bounce" />
-                            <div className="w-1 h-1 bg-stone-400 rounded-full animate-bounce [animation-delay:0.2s]" />
-                            <div className="w-1 h-1 bg-stone-400 rounded-full animate-bounce [animation-delay:0.4s]" />
-                          </div>
-                        </div>
-                      </div>
-                    )}
+                  {/* Tab Selector Buttons */}
+                  <div className="bg-[#FAF9F6] border-b border-stone-200 p-2 shrink-0 flex items-center gap-1.5 shadow-xs">
+                    <button
+                      type="button"
+                      onClick={() => setSidebarTab('supplies')}
+                      className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                        sidebarTab === 'supplies'
+                          ? 'bg-white text-stone-900 shadow-[0_1px_3px_rgba(0,0,0,0.06)] border border-stone-200/85'
+                          : 'text-stone-500 hover:text-stone-800 hover:bg-stone-100/60'
+                      }`}
+                    >
+                      <Check className="w-3.5 h-3.5 text-[#7f1d1d]" strokeWidth={3} />
+                      <span>避難物品清單</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSidebarTab('chat')}
+                      className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                        sidebarTab === 'chat'
+                          ? 'bg-white text-stone-900 shadow-[0_1px_3px_rgba(0,0,0,0.06)] border border-stone-200/85'
+                          : 'text-stone-500 hover:text-stone-800 hover:bg-stone-100/60'
+                      }`}
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-[#7f1d1d]" />
+                      <span>AI 精準諮詢</span>
+                    </button>
                   </div>
 
-                  <form onSubmit={handleChat} className="p-3 bg-white border-t border-stone-200 flex gap-2 shrink-0 items-center">
-                    <input
-                      type="text"
-                      value={chatMessage}
-                      onChange={(e) => setChatMessage(e.target.value)}
-                      placeholder="請輸入您的問題..."
-                      className="flex-1 bg-stone-50 border border-stone-200 py-2.5 px-3 rounded-lg text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-1 focus:ring-stone-400 focus:border-stone-400 transition-colors font-medium animate-none"
-                    />
-                    <button
-                      type="submit"
-                      disabled={isChatting || !chatMessage.trim()}
-                      className="bg-stone-900 hover:bg-stone-800 text-white w-9 h-9 rounded-lg transition-all disabled:opacity-50 flex items-center justify-center shrink-0 active:scale-95 shadow-none"
-                    >
-                      <Send className="w-4 h-4" />
-                    </button>
-                  </form>
+                  {sidebarTab === 'supplies' ? (
+                    <div className="flex-1 overflow-y-auto p-3 custom-scrollbar bg-stone-50/10">
+                      <SuppliesInventory 
+                        supplies={supplies} 
+                        setSupplies={setSupplies} 
+                        memberCount={memberCount} 
+                        setMemberCount={setMemberCount} 
+                        isSidebar={true}
+                      />
+                    </div>
+                  ) : (
+                    <>
+                      <div className="bg-[#FAF9F6] border-b border-stone-150 p-3 shrink-0 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="w-5 h-5 rounded bg-[#f4f1eb] text-stone-700 flex items-center justify-center">
+                            <UserCircle2 className="w-3.5 h-3.5" />
+                          </div>
+                          <h3 className="text-xs font-extrabold tracking-wider text-stone-700 font-sans flex items-center gap-1">
+                            <span>AI 防災諮詢顧問</span>
+                            <span className="text-[9px] bg-[#7f1d1d]/10 text-[#7f1d1d] font-extrabold px-1 py-0.2 rounded-sm shrink-0 scale-90 border border-[#7f1d1d]/10">AI</span>
+                          </h3>
+                        </div>
+                        <div className="flex items-center gap-1 bg-stone-100 px-2 py-0.5 rounded border border-stone-200/30">
+                           <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                           <span className="text-[10px] font-extrabold text-stone-500">待命諮詢中</span>
+                        </div>
+                      </div>
+                      
+                      <div className="flex-1 p-4 overflow-y-auto flex flex-col gap-4 bg-stone-50/20 custom-scrollbar">
+                        {chatHistory.length === 0 && (
+                          <div className="text-center text-stone-600 text-sm my-auto bg-white p-5 rounded-lg border border-stone-200 max-w-xs mx-auto shadow-none">
+                            <UserCircle2 className="w-8 h-8 text-stone-400 mx-auto mb-2" strokeWidth={1.5} />
+                            <p className="font-bold text-sm text-stone-700 mb-1">AI 專屬對話諮詢與缺點分析</p>
+                            <p className="text-stone-500 leading-relaxed text-sm">有任何防災與特定物資問題？隨時輸入，由 AI 防災專員為您深度解答、分析漏洞並提供全方位安全指引。</p>
+                          </div>
+                        )}
+                        
+                        {chatHistory.map((chat, idx) => (
+                          <div key={idx} className={`flex w-full ${chat.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                            <div className={`flex gap-3.5 max-w-[85%] ${chat.role === 'user' ? 'flex-row-reverse' : ''}`}>
+                              {chat.role === 'ai' && (
+                                <div className="w-6 h-6 rounded bg-stone-100 border border-stone-200 shadow-sm flex items-center justify-center shrink-0 mt-1">
+                                  <Sparkles className="w-3.5 h-3.5 text-[#7f1d1d]" />
+                                </div>
+                              )}
+                              <div className={`p-3 rounded-lg shadow-none text-sm ${
+                                chat.role === 'user' 
+                                  ? 'bg-stone-800 text-white font-medium' 
+                                  : 'bg-[#f5f4f0] border border-stone-200 text-stone-800'
+                              }`}>
+                                 <p className="leading-relaxed whitespace-pre-wrap">{chat.text}</p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+
+                        {isChatting && (
+                          <div className="flex w-full justify-start">
+                            <div className="flex gap-2.5 max-w-[85%]">
+                              <div className="w-6 h-6 rounded bg-stone-100 border border-stone-200 flex items-center justify-center shrink-0 mt-1">
+                                <Sparkles className="w-3.5 h-3.5 text-[#7f1d1d]" />
+                              </div>
+                              <div className="bg-[#f5f4f0] border border-stone-200 p-3 rounded-lg flex items-center gap-1.5 h-[32px]">
+                                <div className="w-1 h-1 bg-stone-400 rounded-full animate-bounce" />
+                                <div className="w-1 h-1 bg-stone-400 rounded-full animate-bounce [animation-delay:0.2s]" />
+                                <div className="w-1 h-1 bg-stone-400 rounded-full animate-bounce [animation-delay:0.4s]" />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      <form onSubmit={handleChat} className="p-3 bg-white border-t border-stone-200 flex gap-2 shrink-0 items-center">
+                        <input
+                          type="text"
+                          value={chatMessage}
+                          onChange={(e) => setChatMessage(e.target.value)}
+                          placeholder="請輸入您的問題..."
+                          className="flex-1 bg-stone-50 border border-stone-200 py-2.5 px-3 rounded-lg text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-1 focus:ring-stone-400 focus:border-stone-400 transition-colors font-medium animate-none animate-none"
+                        />
+                        <button
+                          type="submit"
+                          disabled={isChatting || !chatMessage.trim()}
+                          className="bg-stone-900 hover:bg-stone-800 text-white w-9 h-9 rounded-lg transition-all disabled:opacity-50 flex items-center justify-center shrink-0 active:scale-95 shadow-none"
+                        >
+                          <Send className="w-4 h-4" />
+                        </button>
+                      </form>
+                    </>
+                  )}
                 </div>
               </div>
               

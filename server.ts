@@ -7,9 +7,9 @@ import dotenv from "dotenv";
 dotenv.config();
 
 function getAi(clientApiKey?: string): GoogleGenAI {
-  const apiKey = (clientApiKey && clientApiKey.trim()) || process.env.GEMINI_API_KEY;
+  const apiKey = clientApiKey && clientApiKey.trim();
   if (!apiKey) {
-    throw new Error("找不到有效的 Gemini API 金鑰。請在左側設定面板中輸入您的個人 Gemini API 金鑰，或請管理員在系統中配置預設金鑰。");
+    throw new Error("請先在左下方「AI 核心智慧引擎設定」中輸入並儲存您的個人 Gemini API 金鑰。本系統並未提供預設系統金鑰，您必須配置屬於您自己的金鑰才能享有精準的 AI 分析。");
   }
   return new GoogleGenAI({
     apiKey: apiKey,
