@@ -103,13 +103,22 @@ async function startServer() {
         }
       }
       `;
-      const response = await getAi(clientApiKey).models.generateContent({
-        model: "gemini-3.5-flash",
-        contents: prompt,
-        config: {
-          tools: [{ googleSearch: {} }]
-        }
-      });
+      let response;
+      try {
+        response = await getAi(clientApiKey).models.generateContent({
+          model: "gemini-2.5-flash",
+          contents: prompt,
+          config: {
+            tools: [{ googleSearch: {} }]
+          }
+        });
+      } catch (searchError) {
+        console.warn("API Call with Google Search tool failed, retrying without active Google Search:", searchError);
+        response = await getAi(clientApiKey).models.generateContent({
+          model: "gemini-2.5-flash",
+          contents: prompt
+        });
+      }
       let responseText = response.text || "{}";
       responseText = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
       res.json(JSON.parse(responseText));
@@ -128,9 +137,9 @@ async function startServer() {
       const prompt = `
       \u4F60\u662F\u4E00\u4F4D\u9802\u5C16\u7684\u5730\u7406\u8207\u5730\u8CEA\u9632\u707D\u5C08\u5BB6\uFF0C\u5C0D\u53F0\u7063\u7684\u884C\u653F\u5340\u5283\u3001\u5730\u52E2\u8D77\u4F0F\u3001\u6B77\u53F2\u707D\u5BB3\u71B1\u9EDE\u3001\u6C34\u6587\u5206\u4F48\u8207\u65B7\u5C64\u5E36\u5206\u4F48\u5177\u6709\u6975\u5176\u8A73\u76E1\u7684\u77E5\u8B58\u3002
       
-      \u8ACB\u4F9D\u64DA\u4F7F\u7528\u8005\u8F38\u5165\u7684\u4F4D\u7F6E/\u5730\u5740\u9032\u884C\u6DF1\u5EA6\u5206\u6790\uFF1A\${location}\u3002
+      \u8ACB\u4F9D\u64DA\u4F7F\u7528\u8005\u8F38\u5165\u7684\u4F4D\u7F6E/\u5730\u5740\u9032\u884C\u6DF1\u5EA6\u5206\u6790\uFF1A${location}\u3002
       
-      \u8ACB\u9996\u5148\u914D\u5408 Google Search \u5DE5\u5177\uFF0C\u67E5\u8A62\u95DC\u65BC\u300C\u53F0\u7063 \${location} \u6DF9\u6C34 \u65B7\u5C64 \u5730\u8CEA \u571F\u77F3\u6D41 \u707D\u5BB3\u6B77\u53F2\u300D\u7B49\u76F8\u95DC\u771F\u5BE6\u7684\u5730\u7406\u7279\u9EDE\u8207\u707D\u5BB3\u6F5B\u52E2\u3002
+      \u8ACB\u9996\u5148\u914D\u5408 Google Search \u5DE5\u5177\uFF0C\u67E5\u8A62\u95DC\u65BC\u300C\u53F0\u7063 ${location} \u6DF9\u6C34 \u65B7\u5C64 \u5730\u8CEA \u571F\u77F3\u6D41 \u707D\u5BB3\u6B77\u53F2\u300D\u7B49\u76F8\u95DC\u771F\u5BE6\u7684\u5730\u7406\u7279\u9EDE\u8207\u707D\u5BB3\u6F5B\u52E2\u3002
       
       \u63A5\u8457\uFF0C\u9032\u884C\u5168\u9762\u5730\u7406\u8207\u74B0\u5883\u5224\u8B80\uFF0C\u5305\u542B\u4EE5\u4E0B\u5E7E\u5927\u8981\u9EDE\uFF1A
       1. \u5730\u5F62\u8D77\u4F0F\u8207\u6C34\u9AD4\u95DC\u4FC2\uFF08\u662F\u5426\u9760\u5C71\u3001\u4F4D\u5728\u5C71\u8173/\u5761\u5EA6\u5927\u3001\u8FD1\u9806\u5411\u5761\u5C71\u5340\u3001\u4F4E\u7AAA\u76C6\u5730\u3001\u6216\u6CB3\u6D41\u6392\u6C34\u901A\u9053\u9644\u8FD1\uFF09\u3002
@@ -148,13 +157,22 @@ async function startServer() {
         "environmentDesc": "\u6B64\u8655\u74B0\u5883\u7279\u9EDE\u5206\u6790\u5167\u5BB9..."
       }
       `;
-      const response = await getAi(clientApiKey).models.generateContent({
-        model: "gemini-3.5-flash",
-        contents: prompt,
-        config: {
-          tools: [{ googleSearch: {} }]
-        }
-      });
+      let response;
+      try {
+        response = await getAi(clientApiKey).models.generateContent({
+          model: "gemini-2.5-flash",
+          contents: prompt,
+          config: {
+            tools: [{ googleSearch: {} }]
+          }
+        });
+      } catch (searchError) {
+        console.warn("Environment analysis with Google Search tool failed, retrying without active Google Search:", searchError);
+        response = await getAi(clientApiKey).models.generateContent({
+          model: "gemini-2.5-flash",
+          contents: prompt
+        });
+      }
       let responseText = response.text || "{}";
       responseText = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
       res.json(JSON.parse(responseText));
@@ -169,11 +187,11 @@ async function startServer() {
       const clientApiKey = req.headers["x-api-key"];
       const prompt = `
       \u4F60\u662F\u4E00\u4F4D\u64C1\u670940\u5E74\u7D93\u9A57\u7684\u300CAI\u8CC7\u6DF1\u9632\u707D\u5C08\u5BB6\u300D\u3002
-      \u4F7F\u7528\u8005\u4F4D\u65BC\uFF1A\${location || '\u672A\u63D0\u4F9B'}
-      \u76EE\u524D\u7CFB\u7D71\u8A55\u4F30\u98A8\u96AA\u7E3D\u9AD4\u7B49\u7D1A\uFF1A\${currentRisk || '\u672A\u77E5'}
+      \u4F7F\u7528\u8005\u4F4D\u65BC\uFF1A${location || "\u672A\u63D0\u4F9B"}
+      \u76EE\u524D\u7CFB\u7D71\u8A55\u4F30\u98A8\u96AA\u7E3D\u9AD4\u7B49\u7D1A\uFF1A${currentRisk || "\u672A\u77E5"}
       
-      \u5BB6\u5EAD\u72C0\u6CC1\u5305\u542B\uFF1A\u5E7C\u5152(\${familyProfile?.hasToddler})\u3001\u8001\u4EBA(\${familyProfile?.hasElderly})\u3001\u6162\u6027\u75C5\u60A3(\${familyProfile?.hasChronicIllness})\u3001\u884C\u52D5\u4E0D\u4FBF\u8005(\${familyProfile?.hasMobilityIssues})\u3001\u5916\u9001\u54E1(\${familyProfile?.hasDeliveryRider})
-      \u5C45\u4F4F\u74B0\u5883\u63CF\u8FF0 (\u8ACB\u8003\u616E\u5176\u6F5B\u5728\u98A8\u96AA)\uFF1A\${environmentDesc || '\u672A\u63D0\u4F9B'}
+      \u5BB6\u5EAD\u72C0\u6CC1\u5305\u542B\uFF1A\u5E7C\u5152(${familyProfile?.hasToddler})\u3001\u8001\u4EBA(${familyProfile?.hasElderly})\u3001\u6162\u6027\u75C5\u60A3(${familyProfile?.hasChronicIllness})\u3001\u884C\u52D5\u4E0D\u4FBF\u8005(${familyProfile?.hasMobilityIssues})\u3001\u5916\u9001\u54E1(${familyProfile?.hasDeliveryRider})
+      \u5C45\u4F4F\u74B0\u5883\u63CF\u8FF0 (\u8ACB\u8003\u616E\u5176\u6F5B\u5728\u98A8\u96AA)\uFF1A${environmentDesc || "\u672A\u63D0\u4F9B"}
 
       \u8ACB\u4EE5\u5C08\u696D\u3001\u52D9\u5BE6\u3001\u56B4\u8B39\u7684\u8A9E\u6C23\uFF0C\u56DE\u7B54\u4F7F\u7528\u8005\u7684\u554F\u984C\u3002\u7D66\u51FA\u5BE6\u8E10\u6027\u9AD8\u7684\u5C08\u5BB6\u9632\u8B77\u52D5\u4F5C\uFF0C\u907F\u514D\u7A7A\u6CDB\u547C\u7C72\u3002
       
@@ -181,10 +199,10 @@ async function startServer() {
       \u4F60\u5728\u5C0D\u8A71\u4E2D\uFF0C\u5FC5\u9808\u4E3B\u52D5\u4E14\u56B4\u53B2\u5730\u5206\u6790\u4F7F\u7528\u8005\u5728\u4F4F\u5B85\u74B0\u5883\u3001\u7269\u8CC7\u5099\u7F6E\u4E0A\u7684\u300C\u5B89\u5168\u7F3A\u9EDE\u8207\u6F5B\u5728\u6F0F\u6D1E\u300D\uFF08\u4F8B\u5982\u7F3A\u5C11\u95DC\u9375\u7269\u8CC7\u6642\u7684\u5371\u96AA\u3001\u9577\u8005\u7167\u8B77\u7684\u5B89\u5168\u76F2\u9EDE\u3001\u9003\u751F\u52D5\u7DDA\u5806\u7A4D\u7B49\u5F0A\u7AEF\uFF09\uFF0C\u4E26\u7D66\u4E88\u660E\u78BA\u7684\u6539\u5584\u5EFA\u8B70\u4EE5\u5F4C\u88DC\u7F3A\u6F0F\u3002
       \u540C\u6642\uFF0C\u4F60\u52D9\u5FC5\u5728\u56DE\u7B54\u7684\u6700\u5E95\u90E8\uFF0C\u53E6\u8D77\u4E00\u884C\u660E\u78BA\u8A3B\u660E\uFF1A\u300C\uFF08\u672C\u5206\u6790\u8207\u5EFA\u8B70\u7531 AI \u9632\u707D\u52A9\u624B\u6574\u5408\u751F\u6210\uFF0C\u50C5\u4F9B\u907F\u96E3\u6574\u5099\u53C3\u8003\uFF09\u300D\u4EE5\u7B26\u5408 AI \u63D0\u793A\u6A19\u8A18\u653F\u7B56\u3002
 
-      \u554F\u984C\uFF1A\${message}
+      \u554F\u984C\uFF1A${message}
       `;
       const response = await getAi(clientApiKey).models.generateContent({
-        model: "gemini-3.5-flash",
+        model: "gemini-2.5-flash",
         contents: prompt
       });
       res.json({ reply: response.text });
