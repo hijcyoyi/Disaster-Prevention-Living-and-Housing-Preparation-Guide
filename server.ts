@@ -208,6 +208,72 @@ async function startServer() {
     }
   });
 
+  // Helper function to fetch and parse CWA RSS feeds safely without external libraries
+  async function fetchCwaRss(url: string) {
+    try {
+      const res = await fetch(url, {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+        }
+      });
+      if (!res.ok) return [];
+      const text = await res.text();
+      const items: { title: string; link: string; description: string; pubDate: string }[] = [];
+      const itemRegex = /<item>([\s\S]*?)<\/item>/g;
+      let match;
+      while ((match = itemRegex.exec(text)) !== null) {
+        const itemContent = match[1];
+        const title = itemContent.match(/<title>([\s\S]*?)<\/title>/)?.[1] || "";
+        const link = itemContent.match(/<link>([\s\S]*?)<\/link>/)?.[1] || "";
+        const description = itemContent.match(/<description>([\s\S]*?)<\/description>/)?.[1] || "";
+        const pubDate = itemContent.match(/<pubDate>([\s\S]*?)<\/pubDate>/)?.[1] || "";
+        
+        items.push({
+          title: cleanXml(title),
+          link: cleanXml(link),
+          description: cleanXml(description),
+          pubDate: cleanXml(pubDate)
+        });
+      }
+      return items;
+    } catch (e) {
+      console.error(`Failed to fetch CWA RSS from ${url}:`, e);
+      return [];
+    }
+  }
+
+  function cleanXml(str: string): string {
+    return str
+      .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&amp;/g, "&")
+      .replace(/&quot;/g, '"')
+      .replace(/&apos;/g, "'")
+      .trim();
+  }
+
+  // API Route: Real-time CWA Severe Weather & Earthquake RSS Proxy
+  app.get("/api/cwa-alerts", async (req, res) => {
+    try {
+      const severeRss = "https://www.cwa.gov.tw/rss/warning/severe.xml";
+      const earthquakeRss = "https://www.cwa.gov.tw/rss/earthquake.xml";
+
+      const [severeList, eqList] = await Promise.all([
+        fetchCwaRss(severeRss),
+        fetchCwaRss(earthquakeRss)
+      ]);
+
+      res.json({
+        warnings: severeList.slice(0, 5),
+        earthquakes: eqList.slice(0, 5)
+      });
+    } catch (error: any) {
+      console.error("Failed to load CWA alerts in router:", error);
+      res.json({ warnings: [], earthquakes: [] });
+    }
+  });
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({

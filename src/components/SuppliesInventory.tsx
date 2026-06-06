@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Check, Droplet, Flame, Heart, FileText, Compass, MoreHorizontal, Plus, Trash, Users } from 'lucide-react';
 import { SupplyItem } from '../types';
+import { defaultSupplies } from '../data';
 
 interface SuppliesInventoryProps {
   supplies: SupplyItem[];
@@ -195,6 +196,19 @@ export function SuppliesInventory({ supplies, setSupplies, memberCount, setMembe
               {memberCount === 1 ? '單人' : `${memberCount}人`}
             </span>
           </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              if (window.confirm('確定要重置所有盤點狀態，恢復專家推薦的預設防災避難清單嗎？（自訂新增的備品也將被移除）')) {
+                setSupplies(defaultSupplies);
+              }
+            }}
+            className="text-[10px] bg-stone-50 hover:bg-stone-204 hover:bg-stone-100 text-stone-605 text-stone-600 border border-stone-200 px-2.5 py-1.5 rounded-lg font-bold select-none cursor-pointer tracking-wider shrink-0 transition-colors"
+            title="重量恢復原始狀態"
+          >
+            🔄 恢復預設清單
+          </button>
         </div>
         
         <div className={`flex flex-col ${isSidebar ? 'gap-3 w-full' : 'sm:flex-row sm:items-center gap-4 min-w-[320px]'}`}>

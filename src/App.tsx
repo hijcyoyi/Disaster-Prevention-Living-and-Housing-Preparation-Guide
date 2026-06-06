@@ -10,21 +10,169 @@ import { defaultSupplies } from './data';
 import type { FamilyProfile, AIAnalysisResult, SupplyItem } from './types';
 import { analyzeRisk, sendChatMessage, analyzeEnvironment } from './services/api';
 
+const EMERGENCY_GUIDES = {
+  earthquake: {
+    title: '🌋 強烈有感地震：趴下、掩護、穩住！',
+    subtitle: '就地避難與極限求生命令（適用５級強以上震度及頻繁餘震）',
+    color: 'from-red-950 to-red-900 text-white border-red-700 hover:from-red-900 hover:to-red-850',
+    badge: '強震、餘震、結構崩移警戒',
+    steps: [
+      { id: 'eq_drop', text: '【趴下、掩護、穩住】立刻雙手抱頭鑽入堅固桌底，緊抓桌腳，保護好最脆弱的頭頸，此時絕對不要起步亂跑！' },
+      { id: 'eq_safe', text: '【避開傾倒墜物】遠離可能位移的大木櫃、衣櫃、冰箱，防範玻璃門、吊置冷氣或裝飾天花板脫落砸傷。' },
+      { id: 'eq_extinguish', text: '【一停即關火源】搖晃稍微停歇的黃金間隔，迅速關閉瓦斯總閥及加熱電器，截斷一切二次火災的潛在因素。' },
+      { id: 'eq_open', text: '【推開玄關大門】立即手動推開家中大門並放置鞋盒阻擋，防止房屋結構變形導緻木門卡死，封閉黃金逃生路徑。' },
+      { id: 'eq_boots', text: '【厚便鞋避難】穿上床頭常備之厚鞋底工作鞋防範室內滿地碎玻璃，沿走廊向開闊的安全大操場或防災公園挺進，嚴禁搭電梯。' }
+    ]
+  },
+  flooding: {
+    title: '🌊 住宅積水、家裡開始淹水倒灌怎麼辦？',
+    subtitle: '適用暴雨鋒面全島特報、突發性淹溢與水流阻斷處置',
+    color: 'from-blue-950 to-blue-900 text-white border-blue-700 hover:from-blue-900 hover:to-blue-850',
+    badge: '暴雨溢流、水流倒灌、阻斷警戒',
+    steps: [
+      { id: 'f_breaker', text: '【一有溢流即切總電】水進玄關前，迅速拉下一樓全戶總配線盤大斷路器、關閉總瓦斯閥，杜絕水中藏電導電，形成致命電網！' },
+      { id: 'f_vertical', text: '【執行垂直高避難】抓起處方用藥、防災包、貴重物資，往公寓二樓以上或鋼筋混凝土高位移轉，切忌留守一樓。' },
+      { id: 'f_walk', text: '【切勿涉水行進】水深若超過 15 公分（過腳踝），絕對不要試圖徒步跨越路面、溪谷！混濁泥流下排水蓋极易被吸開，極度危險。' },
+      { id: 'f_sandbags', text: '【封堵與沙包阻絕】用防水沙包或檔水門進行密封。一旦水淹到大腿以上或被圍困，立即往頂樓尋找避雷核心，搖晃光源待援。' }
+    ]
+  },
+  typhoon: {
+    title: '🌀 強風暴風突發、迎風玻璃吹裂怎麼辦？',
+    subtitle: '迎風面超強風切（11級風以上）安全避護與水泥掩體應對',
+    color: 'from-emerald-950 to-emerald-900 text-white border-emerald-700 hover:from-emerald-900 hover:to-emerald-850',
+    badge: '超強十一級陣風、風切、招牌掉落警告',
+    steps: [
+      { id: 't_core', text: '【退入建築核心】大風肆虐時，一律遠離迎風大片落地窗體（防強風灌破玻璃飛石擊傷），進入無窗衛浴或混凝土走廊結構避風。' },
+      { id: 't_latch', text: '【緊固防堂內風】緊鎖背風迎風每一扇房門窗，防止強風吹開形成穿堂大風，產生強烈內氣壓將鐵皮棚、輕鋼瓦瞬間掀掉。' },
+      { id: 't_objects', text: '【收置室外墜物】颱風登陸前，徹底查清陽台懸空盆栽、曝曬架，嚴格鎖緊排水。在颱風宣布停班時，切勿再外出。' },
+      { id: 't_outage', text: '【防災不斷電應對】颱風極易拍斷電路造成全區停電，睡覺前保證床頭及重要玄關插置好有自亮功能的應急免持照明手電。' }
+    ]
+  },
+  landslide: {
+    title: '🏔️ 收到土石流土砂預警撤離通知怎麼辦？',
+    subtitle: '適用高山丘陵、阿里山/蘇花沿線、黃色/紅色警戒主動避防',
+    color: 'from-amber-950 to-amber-900 text-white border-amber-700 hover:from-amber-900 hover:to-amber-850',
+    badge: '白天預警、土砂崩山、黃紅特報警戒',
+    steps: [
+      { id: 'l_evac', text: '【白天預警果斷撤】接獲村里黃/紅色警戒通知，應乘白天視線清朗時果斷撤離！千万不要拖沓到深夜暴雨封路、停電時。' },
+      { id: 'l_angle', text: '【垂直泥流流向跑】若突遇土崩泥流阻路，應朝向土石流侵瀉方向的「垂直兩側高地高坡」快速逃生，絕不顺流往下游河谷跑！' },
+      { id: 'l_isolation', text: '【備戰孤島物資】高地極易成為救援空難斷路區。清點避難包：14天份重症藥、身分證明影本、備用大容量電、小額硬幣防斷網。' }
+    ]
+  }
+};
+
 export default function App() {
-  const [location, setLocation] = useState('嘉義市中山路199號');
-  const [familyProfile, setFamilyProfile] = useState<FamilyProfile>({
-    hasToddler: false,
-    hasElderly: false,
-    hasChronicIllness: false,
-    hasMobilityIssues: false,
-    hasDeliveryRider: false,
+  const [location, setLocation] = useState(() => localStorage.getItem('disaster_location_v1') || '嘉義市中山路199號');
+  const [familyProfile, setFamilyProfile] = useState<FamilyProfile>(() => {
+    const saved = localStorage.getItem('disaster_family_v1');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (err) {
+        console.error('Failed parsing family profile:', err);
+      }
+    }
+    return {
+      hasToddler: false,
+      hasElderly: false,
+      hasChronicIllness: false,
+      hasMobilityIssues: false,
+      hasDeliveryRider: false,
+    };
   });
   
   const [activeScenario, setActiveScenario] = useState<'normal' | 'typhoon' | 'rain' | 'earthquake'>('normal');
   const [selectedSuspensionRegion, setSelectedSuspensionRegion] = useState<'north' | 'central' | 'south' | 'east'>('north');
-  const [environmentDesc, setEnvironmentDesc] = useState('');
-  const [supplies, setSupplies] = useState<SupplyItem[]>(defaultSupplies);
-  const [memberCount, setMemberCount] = useState<number>(2); // Default to two-person household
+  const [environmentDesc, setEnvironmentDesc] = useState(() => localStorage.getItem('disaster_env_desc_v1') || '');
+  
+  const [supplies, setSupplies] = useState<SupplyItem[]>(() => {
+    const saved = localStorage.getItem('disaster_supplies_v1');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (err) {
+        console.error('Failed parsing saved supplies:', err);
+      }
+    }
+    return defaultSupplies;
+  });
+  
+  const [memberCount, setMemberCount] = useState<number>(() => {
+    const saved = localStorage.getItem('disaster_member_count_v1');
+    return saved ? parseInt(saved, 10) : 2;
+  });
+
+  const [activeEmergencyGuide, setActiveEmergencyGuide] = useState<'earthquake' | 'flooding' | 'typhoon' | 'landslide' | null>(null);
+  const [emergencyChecks, setEmergencyChecks] = useState<Record<string, boolean>>(() => {
+    const saved = localStorage.getItem('disaster_emergency_checks_v1');
+    return saved ? JSON.parse(saved) : {};
+  });
+  const [isOffline, setIsOffline] = useState(() => typeof navigator !== 'undefined' ? !navigator.onLine : false);
+
+  React.useEffect(() => {
+    localStorage.setItem('disaster_location_v1', location);
+  }, [location]);
+
+  React.useEffect(() => {
+    localStorage.setItem('disaster_family_v1', JSON.stringify(familyProfile));
+  }, [familyProfile]);
+
+  React.useEffect(() => {
+    localStorage.setItem('disaster_member_count_v1', memberCount.toString());
+  }, [memberCount]);
+
+  React.useEffect(() => {
+    localStorage.setItem('disaster_env_desc_v1', environmentDesc);
+  }, [environmentDesc]);
+
+  React.useEffect(() => {
+    localStorage.setItem('disaster_supplies_v1', JSON.stringify(supplies));
+  }, [supplies]);
+
+  React.useEffect(() => {
+    localStorage.setItem('disaster_emergency_checks_v1', JSON.stringify(emergencyChecks));
+  }, [emergencyChecks]);
+
+  React.useEffect(() => {
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  // Sync profile-specific items to the supplies list automatically when category toggled
+  React.useEffect(() => {
+    setSupplies(prev => {
+      let updated = [...prev];
+      
+      const syncItem = (id: string, category: string, name: string, urgency: 'immediate' | 'routine', shouldExist: boolean) => {
+        const index = updated.findIndex(item => item.id === id);
+        if (shouldExist && index === -1) {
+          updated.push({ id, category, name, hasIt: false, urgency });
+        } else if (!shouldExist && index !== -1) {
+          updated = updated.filter(item => item.id !== id);
+        }
+      };
+
+      syncItem('custom-toddler-food', '糧食飲水', '👶 嬰幼兒副食品、拉罐奶粉與保久食品 (加強防護)', 'immediate', familyProfile.hasToddler);
+      syncItem('custom-toddler-diaper', '其他備品', '👶 嬰兒紙尿褲、隨載避用乾/濕紙巾套裝', 'immediate', familyProfile.hasToddler);
+      syncItem('custom-toddler-med', '醫療急救', '👶 嬰兒專用退燒用藥與電子耳溫槍儀器', 'immediate', familyProfile.hasToddler);
+
+      syncItem('custom-elderly-med', '醫療急救', '👴 長輩專屬慢性病連續處方藥物 (雙層拉鏈密封袋)', 'immediate', familyProfile.hasElderly);
+      syncItem('custom-elderly-light', '求生工具', '👴 長輩臥房與常駐走道之免插電磁吸夜間感應燈', 'immediate', familyProfile.hasElderly);
+      syncItem('custom-elderly-socks', '保暖禦寒', '👴 長輩專用蓄熱防凍乾爽棉襪與厚羽絨服', 'immediate', familyProfile.hasElderly);
+
+      syncItem('custom-rider-gear', '保暖禦寒', '🛵 符合安全標準之防颱高亮反光雨衣兩截套組', 'immediate', familyProfile.hasDeliveryRider || false);
+      syncItem('custom-rider-powerbank', '其他備品', '🛵 外勤必備 30000mAh 加拿大防滲透防水防摔行動電源', 'immediate', familyProfile.hasDeliveryRider || false);
+
+      return updated;
+    });
+  }, [familyProfile.hasToddler, familyProfile.hasElderly, familyProfile.hasDeliveryRider]);
+
 
   const [customApiKey, setCustomApiKey] = useState(() => localStorage.getItem("custom_gemini_key") || "");
   const [showApiKey, setShowApiKey] = useState(false);
@@ -39,6 +187,138 @@ export default function App() {
   const [isChatting, setIsChatting] = useState(false);
   const [copied, setCopied] = useState(false);
   const [sidebarTab, setSidebarTab] = useState<'supplies' | 'chat'>('supplies');
+
+  // --- Live Weather and CWA Warning Alert States & Logic ---
+  const [liveWeather, setLiveWeather] = useState<{
+    temp: number;
+    precipitation: number;
+    windSpeed: number;
+    weatherCode: number;
+    condition: string;
+    locationName: string;
+    beautifiedWind: string;
+  } | null>(null);
+  const [isFetchingWeather, setIsFetchingWeather] = useState(false);
+  const [cwaAlerts, setCwaAlerts] = useState<{
+    warnings: { title: string; description: string; pubDate: string }[];
+    earthquakes: { title: string; description: string; pubDate: string }[];
+  } | null>(null);
+  const [isFetchingAlerts, setIsFetchingAlerts] = useState(false);
+
+  const getWeatherCondition = (code: number) => {
+    switch (code) {
+      case 0: return "晴朗無雲";
+      case 1:
+      case 2:
+      case 3: return "多雲時晴";
+      case 45:
+      case 48: return "局部濃霧";
+      case 51:
+      case 53:
+      case 55: return "局部毛毛雨";
+      case 56:
+      case 57: return "局部凍雨";
+      case 61: return "小雨";
+      case 63: return "中對流降雨";
+      case 65: return "大雨/暴雨";
+      case 66:
+      case 67: return "凍雨/豪降水";
+      case 71:
+      case 73:
+      case 75: return "降雪量累積";
+      case 77: return "冰雹或細雪";
+      case 80:
+      case 81:
+      case 82: return "短暫強陣雨";
+      case 85:
+      case 86: return "局部雨夾雪";
+      case 95: return "雷陣雨氣候";
+      case 96:
+      case 99: return "雷暴雨加強風";
+      default: return "正常大氣對流";
+    }
+  };
+
+  const getBeautifiedWind = (speed: number) => {
+    const ms = speed / 3.6;
+    if (ms < 0.3) return "0 級 (無風)";
+    if (ms < 1.5) return "1 級 (軟風)";
+    if (ms < 3.3) return "2 級 (輕風)";
+    if (ms < 5.4) return "3 級 (微風)";
+    if (ms < 7.9) return "4 級 (和風)";
+    if (ms < 10.7) return "5 級 (清風)";
+    if (ms < 13.8) return "6 級 (強風)";
+    if (ms < 17.1) return "7 級 (疾風)";
+    if (ms < 20.7) return "8 級 (大風)";
+    if (ms < 24.4) return "9 級 (烈風)";
+    if (ms < 28.4) return "10 級 (狂風)";
+    return "11 級以上強烈暴風";
+  };
+
+  const loadRealtimeWeather = async (targetLoc: string) => {
+    if (!targetLoc.trim()) return;
+    setIsFetchingWeather(true);
+    try {
+      const geocodeUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(targetLoc.trim())}&format=json&limit=1`;
+      const geoRes = await fetch(geocodeUrl, {
+        headers: { "Accept-Language": "zh-TW" }
+      });
+      if (geoRes.ok) {
+        const geoData = await geoRes.json();
+        if (geoData && geoData.length > 0) {
+          const lat = geoData[0].lat;
+          const lon = geoData[0].lon;
+          const displayName = geoData[0].display_name || targetLoc;
+          
+          const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,rain,showers,weather_code,wind_speed_10m&timezone=Asia%2FTaipei`;
+          const weatherRes = await fetch(weatherUrl);
+          if (weatherRes.ok) {
+            const weatherData = await weatherRes.json();
+            const curr = weatherData.current;
+            if (curr) {
+              setLiveWeather({
+                temp: curr.temperature_2m,
+                precipitation: curr.precipitation,
+                windSpeed: curr.wind_speed_10m,
+                weatherCode: curr.weather_code,
+                condition: getWeatherCondition(curr.weather_code),
+                locationName: displayName.split(',')[0] || targetLoc,
+                beautifiedWind: getBeautifiedWind(curr.wind_speed_10m)
+              });
+              
+              // Map the live weather dynamically to scenarios if severe!
+              if (curr.precipitation > 50 || curr.weather_code === 65 || curr.weather_code === 82) {
+                setActiveScenario('rain');
+              } else if (curr.precipitation > 0) {
+                setActiveScenario('rain');
+              } else if (curr.wind_speed_10m > 40) {
+                setActiveScenario('typhoon');
+              }
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Geocoding or weather check error:", e);
+    } finally {
+      setIsFetchingWeather(false);
+    }
+  };
+
+  const loadCwaAlerts = async () => {
+    setIsFetchingAlerts(true);
+    try {
+      const res = await fetch("/api/cwa-alerts");
+      if (res.ok) {
+        const data = await res.json();
+        setCwaAlerts(data);
+      }
+    } catch (e) {
+      console.warn("Server CWA alerts endpoint not available or returned error:", e);
+    } finally {
+      setIsFetchingAlerts(false);
+    }
+  };
 
   const handleSaveApiKey = (newKey: string) => {
     setCustomApiKey(newKey);
@@ -107,12 +387,17 @@ export default function App() {
             // Clean up lead zip code numbers if they exist
             taiwanAddress = taiwanAddress.replace(/^\d+/, '').trim();
             setLocation(taiwanAddress);
+            loadRealtimeWeather(taiwanAddress);
           } else {
-            setLocation(`${latitude.toFixed(5)}, ${longitude.toFixed(5)}`);
+            const coords = `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
+            setLocation(coords);
+            loadRealtimeWeather(coords);
           }
         } catch (err) {
           console.error("Geolocation reverse geocode failed:", err);
-          setLocation(`${latitude.toFixed(5)}, ${longitude.toFixed(5)}`);
+          const coords = `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
+          setLocation(coords);
+          loadRealtimeWeather(coords);
         } finally {
           setIsLocating(false);
         }
@@ -134,10 +419,18 @@ export default function App() {
     );
   };
 
+  React.useEffect(() => {
+    loadRealtimeWeather(location);
+    loadCwaAlerts();
+  }, []);
+
   const handleAnalyze = async () => {
     if (!location.trim()) return;
     setIsAnalyzing(true);
     try {
+      // Refresh current live weather
+      await loadRealtimeWeather(location);
+      
       let currentEnv = environmentDesc;
       
       // Auto-extract environment if empty
@@ -565,6 +858,24 @@ ${missingList || '所有物資皆已備妥！'}
       </header>
 
       <main className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-10">
+        {/* Offline Mode Banner */}
+        {isOffline && (
+          <div className="mb-6 bg-red-50 border-2 border-red-200 rounded-xl p-4.5 flex flex-col sm:flex-row items-start sm:items-center gap-4 shadow-sm animate-pulse">
+            <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center shrink-0 border border-red-200">
+              <CloudLightning className="w-5 h-5 text-red-600 font-extrabold animate-bounce" />
+            </div>
+            <div className="flex-1">
+              <h4 className="text-sm font-extrabold text-[#7f1d1d] tracking-wide flex items-center gap-2">
+                <span>⚠️ 您目前處於離線狀態（基站/路徑網路可能已受損中斷）</span>
+                <span className="text-[10px] bg-red-100 text-red-800 font-bold px-1.5 py-0.5 rounded border border-red-200">OFFLINE MODE ACTIVATED</span>
+              </h4>
+              <p className="text-xs text-stone-600 font-semibold leading-relaxed mt-1">
+                本系統已自動啟用 <strong className="text-stone-850">Cache API 離線防護網</strong>。您在本地儲存的「防災儲備物資盤點卡」、家庭特徵與自重備忘信息皆可 <strong className="text-stone-850">大範圍正常查閱與互動盤點</strong>。請妥善利用此設備保障安全。
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Static Hosting Warning Banner */}
         {(() => {
           const isStaticHost = typeof window !== 'undefined' && window.location.hostname.endsWith('github.io');
@@ -854,6 +1165,81 @@ ${missingList || '所有物資皆已備妥！'}
 
           {/* Right Main Area */}
           <div className="lg:col-span-8 xl:col-span-9 flex flex-col gap-6">
+
+            {/* 🚨 臨災避險極速引導入口 */}
+            <div className="bg-stone-900 rounded-3xl border border-stone-950 shadow-md p-5 sm:p-6 flex flex-col gap-5 text-white">
+              <div className="flex items-center gap-3 border-b border-white/10 pb-3">
+                <div className="w-9 h-9 rounded-lg bg-red-600 flex items-center justify-center text-white shrink-0 animate-pulse">
+                  <ShieldAlert className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-sm sm:text-base font-extrabold tracking-wider text-white">
+                    臨災黃金秒數極速避避入口（點擊開啟逐步自救求生指引）
+                  </h3>
+                  <p className="text-[11px] text-stone-300 font-semibold mt-0.5">
+                    遭遇突發暴雨、強震時請勿驚慌，點選下方卡片，立刻加載極簡、直覺、全離線支持的應急步驟
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setActiveEmergencyGuide('earthquake')}
+                  className="bg-gradient-to-br from-red-950/90 to-red-900 border border-red-800/40 hover:border-red-500 rounded-xl p-3.5 text-left transition-all duration-300 hover:scale-[1.01] active:scale-95 group cursor-pointer"
+                >
+                  <div className="text-xs sm:text-sm font-extrabold text-red-200 group-hover:text-white flex items-center justify-between">
+                    <span>🌋 有感強烈地震</span>
+                    <span className="text-[9px] bg-red-600 text-white font-bold px-1.5 py-0.2 rounded shrink-0">極速求生</span>
+                  </div>
+                  <p className="text-[10px] text-stone-300 font-semibold mt-1.5 leading-relaxed">
+                    趴下護頭、防範位移置物櫃、開門防變形、著鞋撤離
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveEmergencyGuide('flooding')}
+                  className="bg-gradient-to-br from-blue-950/90 to-blue-900 border border-blue-800/40 hover:border-blue-500 rounded-xl p-3.5 text-left transition-all duration-300 hover:scale-[1.01] active:scale-95 group cursor-pointer"
+                >
+                  <div className="text-xs sm:text-sm font-extrabold text-blue-200 group-hover:text-white flex items-center justify-between">
+                    <span>🌊 房屋積水淹水</span>
+                    <span className="text-[9px] bg-blue-600 text-white font-bold px-1.5 py-0.2 rounded shrink-0">切源垂直</span>
+                  </div>
+                  <p className="text-[10px] text-stone-300 font-semibold mt-1.5 leading-relaxed">
+                    切斷一樓總配電箱、藥物包垂直逃生、絕不涉足泥流
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveEmergencyGuide('typhoon')}
+                  className="bg-gradient-to-br from-emerald-950/90 to-emerald-900 border border-emerald-800/40 hover:border-emerald-500 rounded-xl p-3.5 text-left transition-all duration-300 hover:scale-[1.01] active:scale-95 group cursor-pointer"
+                >
+                  <div className="text-xs sm:text-sm font-extrabold text-emerald-200 group-hover:text-white flex items-center justify-between">
+                    <span>🌀 強風吹碎玻璃</span>
+                    <span className="text-[9px] bg-emerald-600 text-white font-bold px-1.5 py-0.2 rounded shrink-0">掩體避風</span>
+                  </div>
+                  <p className="text-[10px] text-stone-300 font-semibold mt-1.5 leading-relaxed">
+                    避開迎風落地窗、反鎖各扇房門、宣佈停課暫停外勤
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveEmergencyGuide('landslide')}
+                  className="bg-gradient-to-br from-amber-950/90 to-amber-900 border border-amber-800/40 hover:border-amber-500 rounded-xl p-3.5 text-left transition-all duration-300 hover:scale-[1.01] active:scale-95 group cursor-pointer"
+                >
+                  <div className="text-xs sm:text-sm font-extrabold text-[#fef3c7] group-hover:text-white flex items-center justify-between">
+                    <span>🏔️ 土石流撤離警報</span>
+                    <span className="text-[9px] bg-amber-600 text-white font-bold px-1.5 py-0.2 rounded shrink-0">直角高逃</span>
+                  </div>
+                  <p className="text-[10px] text-stone-300 font-semibold mt-1.5 leading-relaxed">
+                    白天預警隨車提早撤離、垂直泥流方向跑、常備重藥
+                  </p>
+                </button>
+              </div>
+            </div>
             
             {/* Real-time National Disaster & Weather Warnings Dashboard */}
             <div id="disaster-intel-panel" className="bg-white rounded-3xl border border-stone-200/85 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.03)] p-6 sm:p-7 flex flex-col gap-6 transition-all hover:shadow-[0_6px_24px_-4px_rgba(0,0,0,0.05)]">
@@ -1604,6 +1990,135 @@ ${missingList || '所有物資皆已備妥！'}
 
         </div>
       </main>
+
+      {/* 🚨 Emergency Self-Rescue Guide Interactive Modal */}
+      {activeEmergencyGuide && (() => {
+        const guide = EMERGENCY_GUIDES[activeEmergencyGuide];
+        const isGuideCompleted = guide.steps.every(step => emergencyChecks[step.id]);
+        return (
+          <div className="fixed inset-0 z-50 bg-stone-950/85 backdrop-blur-md flex items-center justify-center p-4">
+            <div className="w-full max-w-2xl bg-stone-900 border border-stone-800 rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh] text-stone-150">
+              
+              {/* Modal Header */}
+              <div className="p-5 sm:p-6 border-b border-stone-800 bg-stone-950 relative">
+                <span className="text-[10px] bg-red-650 bg-red-900/40 text-red-300 font-extrabold border border-red-700/40 px-2.5 py-1 rounded-full uppercase tracking-widest leading-none">
+                  {guide.badge}
+                </span>
+                <h3 className="text-lg sm:text-xl font-black text-white mt-3 flex items-center gap-2">
+                  {guide.title}
+                </h3>
+                <p className="text-xs text-stone-400 font-bold leading-relaxed mt-1">
+                  {guide.subtitle}
+                </p>
+                
+                <button
+                  type="button"
+                  onClick={() => setActiveEmergencyGuide(null)}
+                  className="absolute right-5 top-5 text-stone-500 hover:text-stone-200 hover:bg-stone-800/50 p-2 rounded-full transition-all text-sm font-extrabold cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Progress Bar */}
+              <div className="bg-stone-950 px-6 py-3 border-b border-stone-800 flex items-center justify-between text-xs font-bold text-stone-400">
+                <span className="flex items-center gap-1.5">
+                  <span>防護進度：</span>
+                  <span className="text-emerald-400 font-extrabold text-sm ml-0.5">
+                    {guide.steps.filter(s => emergencyChecks[s.id]).length} / {guide.steps.length} 步驟已確認
+                  </span>
+                </span>
+                {isGuideCompleted ? (
+                   <span className="text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 font-black animate-pulse">
+                     🔥 求生防護完畢！
+                   </span>
+                ) : (
+                   <span className="text-amber-400 font-extrabold">🚨 有部分常規撤離尚未到位</span>
+                )}
+              </div>
+
+              {/* Scrollable List of Interactive Steps */}
+              <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4 custom-scrollbar">
+                <div className="text-xs bg-amber-500/10 border border-amber-500/20 text-amber-300 p-4 rounded-xl flex gap-3">
+                  <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5 animate-bounce" />
+                  <p className="leading-relaxed font-semibold">
+                    <strong>強烈防禦心法：</strong>本指引專供緊臨臨災時 10 秒極速檢視。點選下方條目可直接核實並儲存至本地，即使完全斷網（ offline 狀態下）也支持在手機上交互使用、守護安全。
+                  </p>
+                </div>
+
+                <div className="space-y-2.5">
+                  {guide.steps.map((step, idx) => {
+                    const isChecked = !!emergencyChecks[step.id];
+                    return (
+                      <div
+                        key={step.id}
+                        onClick={() => setEmergencyChecks(prev => ({ ...prev, [step.id]: !prev[step.id] }))}
+                        className={`flex items-start gap-3.5 p-3.5 rounded-xl border transition-all cursor-pointer ${
+                          isChecked 
+                            ? 'bg-emerald-950/20 border-emerald-800/40 opacity-70 hover:opacity-100' 
+                            : 'bg-stone-950/50 border-stone-800 hover:border-stone-700'
+                        }`}
+                      >
+                        <div className="mt-0.5">
+                          <div className={`w-4.5 h-4.5 rounded border flex items-center justify-center shrink-0 transition-colors ${
+                            isChecked 
+                              ? 'bg-emerald-600 border-emerald-600 text-white' 
+                              : 'border-stone-600 bg-stone-900 text-transparent'
+                          }`}>
+                            {isChecked && <Check className="w-3 h-3 text-white" strokeWidth={3.5} />}
+                          </div>
+                        </div>
+                        <div className="flex-1 text-left">
+                          <span className="text-[10px] font-bold text-stone-500 uppercase tracking-widest mr-2">
+                            自救機制 {idx + 1}
+                          </span>
+                          <p className={`text-xs sm:text-sm leading-relaxed mt-0.5 font-semibold ${
+                            isChecked ? 'text-stone-400 line-through' : 'text-stone-200'
+                          }`}>
+                            {step.text}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Dialog Footer */}
+              <div className="p-5 sm:p-6 border-t border-stone-850 bg-stone-950 flex flex-col sm:flex-row gap-4 items-center justify-between">
+                <div className="flex items-center gap-1.5 text-xs text-stone-400 font-semibold self-start sm:self-center">
+                   <Phone className="w-4 h-4 text-red-405 text-red-500 animate-pulse" />
+                   <span>通訊崩潰時點此直撥求救：</span>
+                   <a href="tel:119" className="text-red-400 hover:underline font-extrabold text-sm ml-1">119</a> | 
+                   <a href="tel:112" className="text-amber-400 hover:underline font-extrabold text-sm ml-1">112</a>
+                </div>
+                
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={() => setEmergencyChecks(prev => {
+                      const cleared = { ...prev };
+                      guide.steps.forEach(s => cleared[s.id] = false);
+                      return cleared;
+                    })}
+                    className="flex-1 sm:flex-none border border-stone-800 hover:bg-stone-800 text-stone-450 hover:text-stone-300 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer text-center"
+                  >
+                    重置進度
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveEmergencyGuide(null)}
+                    className="flex-1 sm:flex-none bg-emerald-700 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer text-center"
+                  >
+                    關閉自救指引
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
