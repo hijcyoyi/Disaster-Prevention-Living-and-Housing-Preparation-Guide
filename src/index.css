@@ -6,6 +6,35 @@
   --font-display: "Plus Jakarta Sans", "Noto Sans TC", ui-sans-serif, system-ui, sans-serif;
 }
 
+@layer base {
+  @media (max-width: 767px) {
+    /* 主版型改為單欄 */
+    #app-main-container {
+      display: flex !important;
+      flex-direction: column !important;
+    }
+    
+    /* 左側欄改為折疊收合的頂部工具列 */
+    #app-left-sidebar {
+      width: 100% !important;
+      border-right: none !important;
+      border-bottom: 1px solid #eee !important;
+    }
+    
+    /* 右側清單欄移到主內容下方 */
+    #app-right-sidebar {
+      width: 100% !important;
+      border-left: none !important;
+    }
+    
+    /* 所有按鈕最小高度 52px */
+    button {
+      min-height: 52px !important;
+      font-size: 16px !important;
+    }
+  }
+}
+
 @layer utilities {
   .custom-scrollbar::-webkit-scrollbar {
     width: 6px;
@@ -16,5 +45,12 @@
   .custom-scrollbar::-webkit-scrollbar-thumb {
     background-color: #cbd5e1;
     border-radius: 20px;
+  }
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
 }

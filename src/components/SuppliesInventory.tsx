@@ -98,6 +98,10 @@ const getDynamicScaleInfo = (name: string, memberCount: number): string => {
 export function SuppliesInventory({ supplies, setSupplies, memberCount, setMemberCount, isSidebar = false }: SuppliesInventoryProps) {
   const [customInputs, setCustomInputs] = useState<Record<string, string>>({});
   const [urgencyFilter, setUrgencyFilter] = useState<'immediate' | 'routine' | 'all'>('immediate');
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [showSuccessAnim, setShowSuccessAnim] = useState(false);
+
+  const prevActivePercentRef = React.useRef(0);
 
   const toggleSupply = (id: string) => {
     setSupplies((prev) =>
@@ -143,6 +147,22 @@ export function SuppliesInventory({ supplies, setSupplies, memberCount, setMembe
   const activeCompleted = filteredSupplies.filter((s) => s.hasIt).length;
   const activePercent = Math.round((activeCompleted / activeTotal) * 100) || 0;
 
+  React.useEffect(() => {
+    if (activePercent === 100 && prevActivePercentRef.current < 100) {
+      setShowSuccessAnim(true);
+      const t = setTimeout(() => setShowSuccessAnim(false), 800);
+      return () => clearTimeout(t);
+    }
+    prevActivePercentRef.current = activePercent;
+  }, [activePercent]);
+
+  const getProgressColor = (percent: number) => {
+    if (percent === 100) return 'bg-emerald-500';
+    if (percent >= 67) return 'bg-yellow-500';
+    if (percent >= 34) return 'bg-orange-500';
+    return 'bg-red-500';
+  };
+
   // Group filtered supplies by category
   const groupedSupplies = filteredSupplies.reduce((acc, item) => {
     if (!acc[item.category]) acc[item.category] = [];
@@ -164,6 +184,11 @@ export function SuppliesInventory({ supplies, setSupplies, memberCount, setMembe
                 <span className="text-[10px] bg-red-50 text-[#7f1d1d] font-bold px-1.5 py-0.5 rounded border border-red-200/20">專業分流制</span>
               </h3>
               <p className="text-xs font-semibold text-stone-500 mt-0.5">資深防災專家 40 年避難規劃：避難隨身包、居家儲備物資嚴格分流</p>
+              {completedCount === 0 && (
+                <p className="text-[11px] text-[#7f1d1d]/70 font-bold mt-1.5 animate-pulse">
+                  點擊下方項目旁的 ☐ 即可標記已備妥
+                </p>
+              )}
             </div>
           </div>
 
@@ -199,15 +224,11 @@ export function SuppliesInventory({ supplies, setSupplies, memberCount, setMembe
 
           <button
             type="button"
-            onClick={() => {
-              if (window.confirm('確定要重置所有盤點狀態，恢復專家推薦的預設防災避難清單嗎？（自訂新增的備品也將被移除）')) {
-                setSupplies(defaultSupplies);
-              }
-            }}
-            className="text-[10px] bg-stone-50 hover:bg-stone-204 hover:bg-stone-100 text-stone-605 text-stone-600 border border-stone-200 px-2.5 py-1.5 rounded-lg font-bold select-none cursor-pointer tracking-wider shrink-0 transition-colors"
+            onClick={() => setShowResetConfirm(true)}
+            className="text-[10px] bg-stone-50 hover:bg-stone-200 text-stone-600 border border-stone-200 px-2.5 py-1.5 rounded-lg font-bold select-none cursor-pointer tracking-wider shrink-0 transition-colors"
             title="重量恢復原始狀態"
           >
-            🔄 恢復預設清單
+            🔄 重置清單
           </button>
         </div>
         
@@ -219,14 +240,18 @@ export function SuppliesInventory({ supplies, setSupplies, memberCount, setMembe
              </div>
              <span className="text-lg font-black text-[#7f1d1d]">{progressPercent}%</span>
           </div>
-          <div className="flex-1 w-full min-w-[140px] bg-stone-50 p-2 rounded-lg border border-stone-200/30">
-             <div className="flex justify-between items-end text-[11px] font-bold tracking-wide text-stone-600 mb-1">
-              <span>現選別目錄進度</span>
-              <span className="text-[#7f1d1d] font-extrabold">{activePercent}% ({activeCompleted}/{activeTotal})</span>
+          <div className={`flex-1 w-full min-w-[140px] p-2 rounded-lg border transition-colors duration-300 ${activePercent === 100 ? 'bg-emerald-50 border-emerald-200' : 'bg-stone-50 border-stone-200/30'} ${showSuccessAnim ? 'animate-pulse' : ''}`}>
+             <div className="flex justify-between items-end text-[11px] font-bold tracking-wide mb-1">
+              <span className={activePercent === 100 ? 'text-emerald-700' : 'text-stone-600'}>
+                {activePercent === 100 ? '✓ 備災完成！' : '現選別目錄進度'}
+              </span>
+              <span className={`font-extrabold ${activePercent === 100 ? 'text-emerald-700' : 'text-[#7f1d1d]'}`}>
+                {activePercent}% ({activeCompleted}/{activeTotal})
+              </span>
             </div>
-            <div className="w-full bg-stone-200/60 h-1.5 rounded-full overflow-hidden">
+            <div className={`w-full h-1.5 rounded-full overflow-hidden ${activePercent === 100 ? 'bg-emerald-200/50' : 'bg-stone-200/60'}`}>
               <div 
-                className="bg-[#7f1d1d] h-full rounded-full transition-all duration-700 ease-out" 
+                className={`${getProgressColor(activePercent)} h-full rounded-full transition-all duration-700 ease-out`} 
                 style={{ width: `${activePercent}%` }}
               />
             </div>
@@ -243,6 +268,7 @@ export function SuppliesInventory({ supplies, setSupplies, memberCount, setMembe
           <div className="flex flex-col gap-1 text-left">
             <h4 className="font-extrabold text-[#7f1d1d] text-xs flex items-center gap-1">
               <span>🎖️ 資深防災專家 40 年・雙軌備災心法</span>
+              <span className="ml-2 px-1.5 py-0.5 rounded text-[11px] bg-stone-200/80 text-stone-600 font-medium tracking-wide border border-stone-300/50">AI 整合內容</span>
             </h4>
             <p className="text-stone-600 font-semibold leading-relaxed mt-0.5">
               「混淆隨身避難包與居家常備儲蓄，是災難時最致命的盲點。」
@@ -302,7 +328,7 @@ export function SuppliesInventory({ supplies, setSupplies, memberCount, setMembe
         </button>
       </div>
       
-      <div className={`grid gap-4 overflow-y-auto custom-scrollbar ${isSidebar ? 'grid-cols-1 max-h-[550px]' : 'grid-cols-1 md:grid-cols-2 xl:grid-cols-3 max-h-[460px] lg:max-h-none'}`}>
+      <div className={`grid gap-4 overflow-y-auto custom-scrollbar max-h-[60vh] ${isSidebar ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 xl:grid-cols-3'}`}>
         {Object.entries(groupedSupplies).map(([category, items]) => {
           if (items.length === 0) return null; // Hide empty categories in current filter
           return (
@@ -411,6 +437,36 @@ export function SuppliesInventory({ supplies, setSupplies, memberCount, setMembe
           );
         })}
       </div>
+      {/* Reset Confirmation Dialog */}
+      {showResetConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 flex flex-col gap-5 border border-stone-200">
+            <div className="flex flex-col gap-2">
+              <h3 className="text-lg font-bold text-stone-900">重新開始盤點</h3>
+              <p className="text-sm font-medium text-stone-500">
+                確定要清除所有勾選進度嗎？
+              </p>
+            </div>
+            <div className="flex items-center gap-3 justify-end mt-2 text-sm font-bold">
+              <button
+                onClick={() => setShowResetConfirm(false)}
+                className="px-4 py-2 rounded-lg text-stone-600 hover:bg-stone-100 transition-colors"
+              >
+                取消
+              </button>
+              <button
+                onClick={() => {
+                  setSupplies(defaultSupplies);
+                  setShowResetConfirm(false);
+                }}
+                className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors shadow-sm shadow-red-600/20"
+              >
+                確定重置
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

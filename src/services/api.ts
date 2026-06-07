@@ -106,6 +106,98 @@ export async function analyzeRisk(
   missingItems: string[]
 ): Promise<AIAnalysisResult> {
   const customKey = localStorage.getItem("custom_gemini_key");
+
+  // 如果不填寫 API 金鑰，則顯示台灣在地的防災專家預設高品質內容
+  if (!customKey || !customKey.trim()) {
+    const familyCare: string[] = [
+      "家庭基本安全：無論風雨大小，請一律將貴重物品、防災避難包放置於一樓玄關附近或容易拾取的顯眼位置。",
+      "緊急通路查核：確認家中主要逃生出入口及陽台安全梯通道無雜物堆積，保障能在黃金秒數內撤離。"
+    ];
+    if (familyProfile.hasToddler) {
+      familyCare.push("👶 嬰幼兒照護：請優先將常規嬰幼兒副食品、保久奶粉、奶瓶尿布與安撫玩具打包，防止斷網斷電期間嬰兒哭鬧。");
+    }
+    if (familyProfile.hasElderly) {
+      familyCare.push("👴 長輩安全守護：高齡長者在狂風或地震時極易受驚、血壓上升，請特別注意備妥常備慢性病連續處方箋藥物（預留雙週份量），並保持通道乾爽及配置夜間應急用感應手電筒。");
+    }
+    if (familyProfile.hasChronicIllness) {
+      familyCare.push("💊 慢性病管理：處方用藥或特定医疗器具不可受損。請使用防水密封袋雙層包裝藥包隨身攜帶，並註明詳細病歷貼紙。");
+    }
+    if (familyProfile.hasMobilityIssues) {
+      familyCare.push("♿ 行動不便輔助：請與同住家人、鄰近里鄰長約定好若遇強烈有感地震、或一樓因暴雨積淹水時的協助搬移計畫，床頭必備輪椅/輪杖等支撐裝備。");
+    }
+    if (familyProfile.hasDeliveryRider) {
+      familyCare.push("🛵 臨災出勤警告：外送外勤重症防護提醒！颱風宣布停班課、或是受暴雨豪雨侵襲視野模糊時，切勿心存僥倖冒雨騎乘機車強行外勤，安全第一。");
+    }
+
+    const bagRecommendations: string[] = [
+      "請持續跟進並自主定期維護防災儲備物資。專家建議：每半年全面盤點一次，確保手電筒電池、行動電源可正常充放電。",
+      "按每位家人 3 天份的基本飲水、防寒乾爽保暖衣物與小額現金，確實裝袋置於大門口。"
+    ];
+    if (missingItems.length > 0) {
+      bagRecommendations.unshift(
+        `🚨 缺少物資預警：本系統檢測到您目前缺少 [${missingItems.slice(0, 3).join('、')}${missingItems.length > 3 ? '...' : ''}]。在突發劇烈天災（如強震致停電、颱風豪雨封路）時，缺少該物資可能面臨嚴重的生存安全挑戰，強烈建議及早採購補齊！`
+      );
+    } else {
+      bagRecommendations.unshift("🎉 恭喜！您目前的防災避難隨身包物資非常齊備。請確保家人知曉放置地點並熟背避難路線。");
+    }
+
+    const immediateAction = [
+      "【大門逃生查驗】移開大門附近、玄關旁的鞋櫃或雨傘物件，推開大門放置擋門板確保強震不卡死。",
+      "【應急照明充電】立刻將手邊所有的行動電源、應急手電筒、露營燈充飽，並置於床頭等可隨手拿取處。"
+    ];
+    if (familyProfile.hasElderly || familyProfile.hasMobilityIssues) {
+      immediateAction.push("【預置醫療備品】將行動不便者和長輩的健保卡、醫療需求備份紙條、雙週藥品集中放入透明防水腰包。");
+    }
+
+    return {
+      disasterRisk: {
+        level: "Medium",
+        summary: `針對「${location}」：已自動加載在地的專家防禦指引，目前處於基础防災警戒狀態。填入 API Key 可獲得 AI 個人化建議！`,
+        factors: [
+          { name: "強風暴雨威脅", riskLevel: "🟡 注意防範 (風雨大時請關緊門窗並待在室內水泥掩體內)" },
+          { name: "地質與淹水潛勢", riskLevel: "🟡 注意防範 (低窪處留意積淹水，山坡地防範流砂或順向坡崩塌)" },
+          { name: "交通工作安防", riskLevel: "🟢 正常/溼滑 (全台災害橙紅色特報期间，外勤及山地林路一律禁行)" }
+        ]
+      },
+      suspensionIndicator: {
+        level: "中",
+        reasons: [
+          "請持續留意行政院人事行政總處或所在地方縣市政府發布的最新防颱暴雨停班班課訊息。",
+          "如外圍暴風圈接近本島致風速達10級或24小時累積雨量達停班課標準，請做好居安辦公整備。"
+        ]
+      },
+      familyCare,
+      bagRecommendations,
+      deficiencyAnalysis: {
+        weaknesses: [
+          "部分核心避難備品暫未備齊，一旦強震使主電網中斷或颱風使供水管道污濁，生活便利度將大幅滑坡。",
+          "未配置 API 金鑰使系统無法即時讀取氣象署與 Google 地理大數據，無法自製極為細膩的潛在斷層或區域淹水潛勢報告。"
+        ],
+        improvements: [
+          "趁風雨強震平靜期，盡速採購並補足勾選缺漏的關鍵物資，確認行動電源皆保持可用狀態。",
+          "「填入 API Key 可獲得 AI 個人化建議」以解鎖更全面、結合 Google Search 的地緣與特報深度 AI 分析！"
+        ]
+      },
+      actionableTimeline: {
+        immediate: immediateAction,
+        next24h: [
+          "【氣象監控】每隔2至4小時透過手機（或萬一斷網時使用電池收音機）了解中央氣象署的最新災害警特報。",
+          "【垂直高避難】若發現外部排水不及、一樓有溢水逆流倒灌徵兆，應隨手拎起急救包迅速前往二樓以上進行高位垂直避難。"
+        ]
+      },
+      shelterGuidance: {
+        nearestOptions: [
+          `靠近 ${location} 附近真實存在的公立中小學與防災避難所 (如國小大操場、活動中心)`,
+          "各所在里、鄰與公所事先公告之安全收容點"
+        ],
+        safetyCriteria: [
+          "避難轉移時一律禁止搭乘電梯，首選耐重底厚便工作鞋，嚴格繞開高空招牌、圍牆及電線桿、積水暗渠。",
+          "夜晚大雨轉移需備有備用大光率探照燈，確保視線暢通並有家屬或健康親友同行護送。"
+        ]
+      }
+    };
+  }
+
   const isStaticHosting = window.location.hostname.endsWith('github.io');
 
   // 如果是在 GitHub Pages 靜態託管且有 API 金鑰，或者後端回應不可用，直接進行前端呼叫
@@ -198,6 +290,26 @@ export async function sendChatMessage(params: {
   currentRisk: string;
 }): Promise<{ reply: string }> {
   const customKey = localStorage.getItem("custom_gemini_key");
+
+  // 如果不填寫 API 金鑰，則顯示在地的專家引導資訊
+  if (!customKey || !customKey.trim()) {
+    return {
+      reply: `您好！我是您的 AI 客製化防災顧問。您詢問了關於「${params.message}」的問題。
+
+目前系統正處於**全功能離線防範模式**下運作中。
+
+**專家防災應急建議：**
+1. **就地取材自救：** 遭遇地震或瞬間強雨時請勿過度驚慌。優先鑽入堅固家具下方抱頭保護頭頸，或垂直轉移至二樓以上高位避難。
+2. **位置核實：** 您設定的防災位址為 「${params.location || '未填寫'}」，請確認目前家庭防災常備包（包含 2 萬毫安培小時行動電源、醫藥盒、罐頭飲水）已置於便於隨身帶走的玄關出口。
+3. **脆弱人群保護：** 家中有高齡長輩或病患人群時，務必儲備至少 7-14 天常備連續處方藥，並確保緊急通報通路沒有被傾倒家具堵塞。
+
+💡 **若要啟用功能更強大的 AI 互動防災對話，請在左欄「AI 進階功能（選填）」中貼上您的個人金鑰。填入 API Key 可獲得 AI 個人化偏好與即時環境危害診斷！**
+
+---
+（本分析與建議由 AI 防災助手整合生成，僅供避難整備參考）`
+    };
+  }
+
   const isStaticHosting = window.location.hostname.endsWith('github.io');
 
   if (isStaticHosting && customKey && customKey.trim()) {
@@ -245,6 +357,14 @@ export async function sendChatMessage(params: {
  */
 export async function analyzeEnvironment(location: string): Promise<{ environmentDesc: string }> {
   const customKey = localStorage.getItem("custom_gemini_key");
+
+  // 如果不填寫 API 金鑰，則顯示靜態預設內容或提示
+  if (!customKey || !customKey.trim()) {
+    return {
+      environmentDesc: `針對「${location}」：該處多為都市既有街道，基礎抗震能力通常符合內政部建管規範。然而一旦遭遇強烈暴雨、鋒面洪泛，或突發有感地震，仍需防範短時積淹水以及老舊天花板、盆栽傾倒等風險。「填入 API Key 可獲得 AI 個人化建議」以解析更完整的即時地脈數據。`
+    };
+  }
+
   const isStaticHosting = window.location.hostname.endsWith('github.io');
 
   if (isStaticHosting && customKey && customKey.trim()) {
@@ -261,7 +381,7 @@ export async function analyzeEnvironment(location: string): Promise<{ environmen
     3. 居住房屋特徵提醒（如為該區常見老舊公寓、傳統透天、抑或是近年新興高樓層住宅等可能遇到的結構或強風共振風險、高樓停電受困等）。
     
     請根據上述判讀，提煉成一段約 150 - 250 字左右、語氣溫和且高度專業、實用的「居住環境描述與特徵分析」。
-    注意：不需要用條列式或過多技術術語，要像顧問站在專業角度提供一段自然、流暢、清晰的環境特性寫真。可以直接被置入「居住環境描述」欄位。
+    注意：不需要用條列式 or 過多技術術語，要像顧問站在專業角度提供一段自然、流暢、清晰的環境特性寫真。可以直接被置入「居住環境描述」欄位。
     
     範例風格：
     「該位置位於台北市南港區靠近山腳一帶，鄰近部分順向坡與大坑溪一隅。在颱風豪雨或極端降雨事件發生時，坡地水流可能迅速匯集，低窪巷弄需留意短時積水。此外，該區多有屋齡逾30年的老舊透天的結構避難風險，強震或豪雨時需注意山坡崩塌與連外道路管制，建議多加留意防災防淹整備。」

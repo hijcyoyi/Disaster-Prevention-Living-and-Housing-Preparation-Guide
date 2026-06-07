@@ -23,7 +23,7 @@ function getAi(clientApiKey?: string): GoogleGenAI {
 
 async function startServer() {
   const app = express();
-  const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
+  const PORT = 3000;
 
   app.use(express.json());
 
@@ -32,6 +32,98 @@ async function startServer() {
     try {
       const { location, familyProfile, environmentDesc, missingItems } = req.body;
       const clientApiKey = req.headers['x-api-key'] as string;
+
+      if (!clientApiKey || !clientApiKey.trim()) {
+        // Return static Taiwanese disaster expert guidance
+        const familyCare: string[] = [
+          "家庭基本安全：無論風雨大小，請一律將貴重物品、防災避難包放置於一樓玄關附近或高位便於攜帶處。",
+          "緊急通路查核：確認家中主要逃生出入口及陽台通道無雜物堆積，保障能在黃金秒數內撤離無阻礙。"
+        ];
+        if (familyProfile?.hasToddler) {
+          familyCare.push("👶 嬰幼兒照護：請優先將嬰幼兒奶粉、備好乾淨保久水、尿布與安撫玩具置於防災隨身包中，防止斷電期間嬰兒哭鬧慌亂。");
+        }
+        if (familyProfile?.hasElderly) {
+          familyCare.push("👴 長輩安全守護：高齡長者在強風巨震時易血壓升高或受驚，請預置好 7 天以上之慢性病常用處方箋藥物，並確保房門與常經走道貼有自亮感應燈。");
+        }
+        if (familyProfile?.hasChronicIllness) {
+          familyCare.push("💊 慢性病管理：重症與慢性病患不可漏藥。請以雙層密封袋緊鎖儲水與 14 天份常用病理藥物隨身抱包。");
+        }
+        if (familyProfile?.hasMobilityIssues) {
+          familyCare.push("♿ 行動不便者疏散：請事先與左鄰右舍或社區主委約定好若遇強震與嚴重淹水時的協助撤離任務分工，並在床頭備好步行輔助器。");
+        }
+        if (familyProfile?.hasDeliveryRider) {
+          familyCare.push("🛵 臨災停售守則：外送工作者請特別注意！10級陣風以上或發布暴雨警特報時，請立即暫停派單外勤，生命安全第一。");
+        }
+
+        const bagRecommendations: string[] = [
+          "請持續核對自主備災清單。專家提醒：定期檢查電池、藥品及罐頭的效期，至少每半年更新或更換一次。",
+          "確保您與每位家人皆有一套完備的防護用品與保暖外套。"
+        ];
+        if (missingItems && missingItems.length > 0) {
+          bagRecommendations.unshift(
+            `🚨 缺少物資預警：您勾選缺少的項目包括 [${missingItems.slice(0, 3).join('、')}${missingItems.length > 3 ? '...' : ''}]。在面臨強烈風降雨或地震停電時，這可能帶來嚴重的應急安全隱憂，強烈建議提早補齊！`
+          );
+        } else {
+          bagRecommendations.unshift("🎉 恭喜！您目前的基礎防災儲備物資非常齊全，請繼續保持並確保所有電池、行動電源皆已充飽。");
+        }
+
+        const immediateAction = [
+          "【檢查逃生路徑】立刻清理大門、走廊、玄關堆積之鞋盒跟傘架，確保通道暢通。",
+          "【電源應急】將自備行動電源、手電筒等應急照明工具充飽，並置於床頭等手腳易觸及之處。"
+        ];
+        if (familyProfile?.hasElderly || familyProfile?.hasMobilityIssues) {
+          immediateAction.push("【長輩疏散通報】將行動不便與長輩的必備就醫清單、健保卡及常用藥整齊裝入透明夾鏈袋。");
+        }
+
+        return res.json({
+          disasterRisk: {
+            level: "Medium",
+            summary: `針對 ${location || '目標地點'}，已加載「專家推薦本地防災指引」。當前處於基礎整備防禦狀態。填入 API Key 可獲得 AI 個人化即時天氣與地質潛勢分析建議！`,
+            factors: [
+              { name: "強風暴雨威脅", riskLevel: "🟡 注意防範 (請留意中央氣象署特報)" },
+              { name: "地質與淹水潛勢", riskLevel: "🟡 注意防範 (山區土石、低窪防積水)" },
+              { name: "交通工作安防", riskLevel: "🟢 正常/溼滑 (風雨加大時請自主暫停外務)" }
+            ]
+          },
+          suspensionIndicator: {
+            level: "中",
+            reasons: [
+              "請持續關注行政院人事行政總處或地方縣市政府發布的最新班課異動公告",
+              "若氣象預測降雨量達停班停課標準，自主防護與線上辦公為首選"
+            ]
+          },
+          familyCare,
+          bagRecommendations,
+          deficiencyAnalysis: {
+            weaknesses: [
+              "部分非標準物資尚未備足，一旦遭遇突發天災短時斷電，將面臨暫時通訊或照明不便。",
+              "缺乏進階 AI 地理探地分析可能遮蔽特定局部位置的隱匿災害（如斷層、過往淹水紀錄）。"
+            ],
+            improvements: [
+              "建議立刻抽空採購並補足所缺少的防災物品，並傳送避難卡文字給所有同住家人備用。",
+              "「填入 API Key 可獲得 AI 個人化建議」以對該位置進行即時的 Google Search 地脈災害深度診斷。"
+            ]
+          },
+          actionableTimeline: {
+            immediate: immediateAction,
+            next24h: [
+              "【氣象監控】每隔2至4小時透過收音機、電視或網路追蹤最新氣象警特報與颱風路徑。",
+              "【垂直避難防護】若外部開始積水且水深過腳踝，一律停止外出，迅速移往房屋二樓以上高地。"
+            ]
+          },
+          shelterGuidance: {
+            nearestOptions: [
+              `靠近 ${location || '設定地點'} 最近鄰之公立學校避難收容處所`,
+              "所在鄰里活動中心或防災避難公園"
+            ],
+            safetyCriteria: [
+              "避難撤離行進時，絕對不強行跨越積水路段，務必繞開懸掛招牌下的強切路口。",
+              "長者、多病者撤離需由親友或鄰居陪同，利用高地水泥建築體掩體前進。"
+            ]
+          }
+        });
+      }
+
       const prompt = `
       請以一位擁有40年實務經驗的台灣資深防災專家身份進行分析。目標地點：${location}。
       
@@ -39,11 +131,11 @@ async function startServer() {
       根據最新的真實數據與災害預報，進行極其精準、真實情境的居住地安全防護分析。
 
       家庭成員與人員特徵：
-      ${familyProfile?.hasToddler ? '- 嬰幼兒成員：需要專屬防災副食品、尿布奶粉、溫濕度控制、安心安撫與特殊嬰幼兒應急避難包補給整備。\\n' : ''}
-      ${familyProfile?.hasElderly ? '- 高齡長者成員（長輩）：常備慢性病藥物、居家防跌防滑、不斷電照明、禦寒避寒、隨身急救藥盒與照護安全提醒。\\n' : ''}
-      ${familyProfile?.hasChronicIllness ? '- 慢性病患成員：常備專用藥物（7-14天備量）、急救聯繫管道與固定服藥提醒。\\n' : ''}
-      ${familyProfile?.hasMobilityIssues ? '- 行動不便成員：逃生動線暢通、緊急疏散協助、預備輪椅/輪杖等逃生移動支撐裝置。\\n' : ''}
-      ${familyProfile?.hasDeliveryRider ? '- 外送外勤人員：極端天氣安全行車規範（防側風打滑、停單限制、避免積水道路及高地風切）。\\n' : ''}
+      ${familyProfile?.hasToddler ? '- 嬰幼兒成員：需要專屬防災副食品、尿布奶粉、溫濕度控制、安心安撫與特殊嬰幼兒應急避難包補給整備。\n' : ''}
+      ${familyProfile?.hasElderly ? '- 高齡長者成員（長輩）：常備慢性病藥物、居家防跌防滑、不斷電照明、禦寒避寒、隨身急救藥盒與照護安全提醒。\n' : ''}
+      ${familyProfile?.hasChronicIllness ? '- 慢性病患成員：常備專用藥物（7-14天備量）、急救聯繫管道與固定服藥提醒。\n' : ''}
+      ${familyProfile?.hasMobilityIssues ? '- 行動不便成員：逃生動線暢通、緊急疏散協助、預備輪椅/輪杖等逃生移動支撐裝置。\n' : ''}
+      ${familyProfile?.hasDeliveryRider ? '- 外送外勤人員：極端天氣安全行車規範（防側風打滑、停單限制、避免積水道路及高地風切）。\n' : ''}
 
       請根據您搜尋到的「最新真實天氣預報與災害狀態」，結合上述家庭成員、外送外勤特徵、環境與物資缺口，給出最務實的專家建議：
       1. 災害風險分析：基於真實氣象特報（特別針對颱風警報、暴雨豪雨預警、強震預兆、土石流等實時警特報）說明具體威脅重點，判定總體居住安全風險等級 (High, Medium, 或 Low)。
@@ -80,8 +172,8 @@ async function startServer() {
           "next24h": ["持續關注最新颱風/豪雨陸上警報與停班停課公告", "備妥臨時停電/停水措施"] 
         },
         "shelterGuidance": {
-          "nearestOptions": ["地點A (例如 \${location} 某某國小，適用淹水或強震避難)", "地點B (例如 某某活動中心，適用收容)"],
-          "safetyCriteria": ["行進原則1 (如避開下水道溢水、高牆)", "行進原則2 (如長輩行進注意夜間探照，外勤強風時就近水泥建物內避風)"]
+          "nearestOptions": ["地點A (例如 ${location} 某某國小，適用淹水或空曠避難)", "地點B..."],
+          "safetyCriteria": ["避難注意事項1", "避難注意事項2"]
         }
       }
       `;
@@ -96,7 +188,7 @@ async function startServer() {
           },
         });
       } catch (searchError: any) {
-        console.warn("API Call with Google Search tool failed, retrying without active Google Search:", searchError);
+        console.warn("Analysis with Google Search tool failed, retrying without active Google Search:", searchError);
         response = await getAi(clientApiKey).models.generateContent({
           model: "gemini-2.5-flash",
           contents: prompt,
@@ -108,22 +200,25 @@ async function startServer() {
 
       res.json(JSON.parse(responseText));
     } catch (error: any) {
-      console.error(error);
-      res.status(500).json({ error: "Failed to generate risk analysis: " + (error.message || String(error)) });
+      console.error("AI Analysis failed:", error);
+      res.status(500).json({ error: "Failed to analyze risk: " + (error.message || String(error)) });
     }
   });
 
-  // API Route: AI Environment Extraction from Address
+  // API Route: Environment Overview Analysis
   app.post("/api/gemini/analyze-environment", async (req, res) => {
     try {
       const { location } = req.body;
       const clientApiKey = req.headers['x-api-key'] as string;
-      if (!location || !location.trim()) {
-        return res.status(400).json({ error: "Location is required" });
+
+      if (!clientApiKey || !clientApiKey.trim()) {
+        return res.json({
+          environmentDesc: `針對「${location}」：該處多為都市既有街道，基礎抗震能力通常符合內政部建管規範。然而一旦遭遇強烈暴雨、鋒面洪泛，或突發有感地震，仍需防範短時積淹水以及老舊天花板、盆栽傾倒等風險。「填入 API Key 可獲得 AI 個人化建議」以解析更完整的即時地脈數據。`
+        });
       }
 
       const prompt = `
-      你是一位頂尖的地理與地質防災專家，對台灣的行政區劃、地勢起伏、歷史災害熱點、水文分佈與斷層帶分佈具有極其詳盡的知識。
+      你是台灣在地的資深都市防災技師與地質專家。
       
       請依據使用者輸入的位置/地址進行深度分析：${location}。
       
@@ -178,6 +273,24 @@ async function startServer() {
     try {
       const { message, familyProfile, location, environmentDesc, currentRisk } = req.body;
       const clientApiKey = req.headers['x-api-key'] as string;
+
+      if (!clientApiKey || !clientApiKey.trim()) {
+        return res.json({
+          reply: `您好！我是您的 AI 客製化防災顧問。您詢問了關於「${message}」的問題。
+
+目前系統正處於**全功能離線防範模式**下運作中。
+
+**專家防災應急建議：**
+1. **就地取材自救：** 遭遇地震或瞬間強雨時請勿過度驚慌。優先鑽入堅固家具下方抱頭保護頭頸，或垂直轉移至二樓以上高位避難。
+2. **位置核實：** 您設定的防災位址為 「${location || '未填寫'}」，請確認目前家庭防災常備包（包含 2 萬行動電源、手電筒）隨時可拿。
+3. **安全意識：** 定期檢查逃生通道無雜物、並熟悉最近鄰里防災備用收容所。
+
+💡 **若要啟用功能更強大的 AI 互動對話與即時海陸特報分析，請在左欄貼上您的個人金鑰。填入 API Key 可獲得 AI 個人化諮詢建議！**
+
+---
+（本分析與建議由 AI 防災助手整合生成，僅供避難整備參考）`
+        });
+      }
       
       const prompt = `
       你是一位擁有40年經驗的「AI資深防災專家」。
@@ -290,7 +403,7 @@ async function startServer() {
   }
 
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:\${PORT}`);
+    console.log(`Server running on http://localhost:${PORT}`);
   });
 }
 
