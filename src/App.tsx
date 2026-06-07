@@ -40,7 +40,7 @@ export default function App() {
     return saved ? saved === 'true' : false;
   });
 
-  // Dual Toggle Mode: "routine" (平時準備 - Slate Blue / Sage Green) vs "emergency" (緊急當下 - Alert Orange / Bright Yellow)
+  // Dual Toggle Mode: "routine" (平時準備) vs "emergency" (緊急當下)
   const [siteMode, setSiteMode] = useState<'routine' | 'emergency'>('routine');
 
   // Currently expanded guide card ("earthquake_securing" | "water_outage" | "family_plan")
@@ -151,6 +151,9 @@ export default function App() {
 
   const [customApiKey, setCustomApiKey] = useState(() => localStorage.getItem("custom_gemini_key") || "");
   const [showApiKey, setShowApiKey] = useState(false);
+  const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
+  const [tempApiKey, setTempApiKey] = useState("");
+  const [showTempApiKey, setShowTempApiKey] = useState(false);
   const [isEnvOpen, setIsEnvOpen] = useState(false);
   const [isFamilyOpen, setIsFamilyOpen] = useState(false);
   const [isAiOpen, setIsAiOpen] = useState(false);
@@ -326,6 +329,28 @@ export default function App() {
     } else {
       localStorage.removeItem("custom_gemini_key");
       alert("儲存空值，個人金鑰已清除。");
+    }
+  };
+
+  const handleTempApiKeyChange = (val: string) => {
+    setTempApiKey(val);
+    const trimmed = val.trim();
+    if (trimmed) {
+      localStorage.setItem("custom_gemini_key", trimmed);
+      setCustomApiKey(trimmed);
+    } else {
+      localStorage.removeItem("custom_gemini_key");
+      setCustomApiKey("");
+    }
+  };
+
+  const handleGenerateClick = () => {
+    const savedKey = localStorage.getItem("custom_gemini_key") || customApiKey;
+    if (!savedKey || !savedKey.trim()) {
+      setTempApiKey("");
+      setIsApiKeyModalOpen(true);
+    } else {
+      handleAnalyze();
     }
   };
 
@@ -690,8 +715,8 @@ ${missingList || '所有物資皆已備妥！'}
             </h2>
             <p className="text-sm text-stone-500 dark:text-stone-400 mt-2 font-medium">
               {siteMode === 'routine' 
-                ? '採用 Slate Blue 和 Sage Green 配色，側重家具結構固定、家人特殊需求配置。有備無患，打造最放心的住宅韌性基礎。'
-                : '採用高醒目警示色與明黃。此一模式在遭遇地震搖晃、淹水及強風時，1秒提供撤離命令、緊急電話直撥、鄰里避難地圖盤點。'
+                ? '本指南結合現代住宅結構安全與家庭應變實務，致力於協助大眾在日常生活中建立系統化的防災準備，構築安全的居住環境。'
+                : '本模式在遭遇突發地震、積水淹水或強烈風災等緊急形勢下，為您提供即時就地避難命令、緊急通報電話直撥與離線自救步驟指引。'
               }
             </p>
           </div>
@@ -1223,7 +1248,7 @@ ${missingList || '所有物資皆已備妥！'}
               </div>
               
               <button
-                onClick={() => handleAnalyze()}
+                onClick={handleGenerateClick}
                 disabled={isAnalyzing || !location.trim()}
                 className="bg-slate-800 hover:bg-slate-900 dark:bg-orange-600 dark:hover:bg-orange-700 text-white font-extrabold text-sm px-6 py-3.5 rounded-xl transition-all shadow-md shrink-0 flex items-center justify-center gap-1.5 active:scale-95 disabled:opacity-40 cursor-pointer min-h-[48px]"
               >
@@ -1767,6 +1792,95 @@ ${missingList || '所有物資皆已備妥！'}
           </div>
         );
       })()}
+
+      {/* Elegantly styled Guard Rail Modal for Gemini API key instructions */}
+      {isApiKeyModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-950/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="relative w-full max-w-lg bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-3xl p-6 sm:p-8 shadow-2xl text-left animate-in zoom-in-95 duration-200">
+            {/* Close button */}
+            <button
+              onClick={() => setIsApiKeyModalOpen(false)}
+              className="absolute top-4 right-4 p-2 rounded-xl text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors min-h-[44px]"
+              aria-label="Close API Key Configuration modal"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400 flex items-center justify-center shrink-0 shadow-sm">
+                <Key className="w-5 h-5 animate-pulse" />
+              </div>
+              <h3 className="text-xl font-extrabold text-stone-900 dark:text-white leading-tight">
+                🔑 設定您的 AI 助理功能
+              </h3>
+            </div>
+
+            <p className="text-sm text-stone-600 dark:text-stone-350 mb-5 leading-relaxed font-semibold">
+              此客製指南分析與即時防災對話功能採用進階 Gemini AI，能整合您專屬的住宅特徵進行深度分析。為保障隱私與您享用完整的免費額度，此功能需要您填入個人專屬的 Google AI 金鑰。
+            </p>
+
+            {/* Core Threshold Reduction Instruction Widget */}
+            <div className="bg-amber-50/70 border border-amber-200/80 dark:bg-amber-950/20 dark:border-amber-900/40 rounded-2xl p-4 mb-5 shadow-xs text-left">
+              <p className="text-xs sm:text-sm text-amber-800 dark:text-amber-300 font-semibold leading-relaxed">
+                💡 <strong>如何獲取免費 Key？</strong><br />
+                點擊前往 <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-amber-700 dark:text-amber-400 underline font-black hover:opacity-85 inline-flex items-center gap-0.5">Google AI Studio (https://aistudio.google.com/app/apikey)<Sparkles className="w-3.5 h-3.5 inline text-amber-500 animate-pulse" /></a> ，登入 Google 帳號後點擊<strong>「Create API key」</strong>即可免費複製取得！
+              </p>
+            </div>
+
+            {/* Key input with dynamic hide/show field */}
+            <div className="mb-6">
+              <label className="block text-xs font-black text-stone-500 uppercase tracking-widest mb-2">
+                貼上您的 Gemini API 金鑰
+              </label>
+              <div className="relative">
+                <input
+                  type={showTempApiKey ? "text" : "password"}
+                  value={tempApiKey}
+                  onChange={(e) => handleTempApiKeyChange(e.target.value)}
+                  placeholder="AIzaSy..."
+                  className="w-full bg-stone-50 dark:bg-stone-950 focus:bg-white border border-stone-200 dark:border-stone-850 text-stone-900 dark:text-white rounded-xl pl-3.5 pr-11 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 font-mono"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowTempApiKey(!showTempApiKey)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 hover:bg-stone-200 dark:hover:bg-stone-800 rounded-lg text-stone-500 dark:text-stone-400 min-h-[44px]"
+                  title={showTempApiKey ? "隱藏 API Key" : "顯示 API Key"}
+                >
+                  {showTempApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              <p className="text-[11px] text-stone-400 dark:text-stone-500 mt-1.5 font-bold">
+                * 金鑰將僅安全儲存於您的本機瀏覽器 localStorage，絕對不會上傳至任何第三方伺服器。
+              </p>
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex flex-col sm:flex-row gap-3 sm:justify-end">
+              <button
+                onClick={() => setIsApiKeyModalOpen(false)}
+                className="w-full sm:w-auto border border-stone-300 dark:border-stone-800 bg-white dark:bg-stone-900 hover:bg-stone-100 dark:hover:bg-stone-850 text-stone-600 dark:text-stone-300 px-5 py-3 rounded-xl text-sm font-bold transition-all cursor-pointer text-center min-h-[48px]"
+              >
+                稍後設定
+              </button>
+              <button
+                onClick={() => {
+                  if (!tempApiKey.trim()) {
+                    alert("請先貼上有效的 Gemini API 金鑰，或者點選「稍後設定」。");
+                    return;
+                  }
+                  setIsApiKeyModalOpen(false);
+                  handleAnalyze();
+                }}
+                className="w-full sm:w-auto bg-slate-800 hover:bg-slate-900 dark:bg-orange-600 dark:hover:bg-orange-700 text-white px-6 py-3 rounded-xl text-sm font-bold transition-all shadow-md active:scale-95 cursor-pointer text-center min-h-[48px] flex items-center justify-center gap-1.5"
+              >
+                <Check className="w-4 h-4 text-emerald-400" strokeWidth={3} />
+                <span>儲存並開始生成</span>
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
 
     </div>
   );
