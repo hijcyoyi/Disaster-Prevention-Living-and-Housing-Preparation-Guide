@@ -1,80 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   ShieldAlert, AlertCircle, CloudLightning, HeartPulse, UserCircle2, 
   MapPin, Loader2, Send, CloudRainWind, Activity, ArrowRight, FileText,
   Home, Clock, Phone, Sparkles, Check, Key, Eye, EyeOff,
-  Bike, AlertTriangle, Zap, Sun, Calendar, Compass, Settings, X
+  Bike, AlertTriangle, Zap, Sun, Moon, Calendar, Compass, Settings, X
 } from 'lucide-react';
 import { SuppliesInventory } from './components/SuppliesInventory';
 import { defaultSupplies } from './data';
 import type { FamilyProfile, AIAnalysisResult, SupplyItem } from './types';
 import { analyzeRisk, sendChatMessage, analyzeEnvironment } from './services/api';
+import { EMERGENCY_GUIDES, SCENARIO_DATA } from './disasterData';
 
-const CWA_API_KEY = ""; // 免費申請：https://opendata.cwa.gov.tw/
-const SUSPENSION_RESOURCE_ID = "3160-54"; // 請填入停班停課 API Resource ID
-
-const EMERGENCY_GUIDES = {
-  earthquake: {
-    title: '🌋 強烈有感地震：趴下、掩護、穩住！',
-    subtitle: '就地避難與極限求生命令（適用５級強以上震度及頻繁餘震）',
-    color: 'from-red-950 to-red-900 text-white border-red-700 hover:from-red-900 hover:to-red-850',
-    badge: '強震、餘震、結構崩移警戒',
-    steps: [
-      { id: 'eq_drop', text: '【趴下、掩護、穩住】立刻雙手抱頭鑽入堅固桌底，緊抓桌腳，保護好最脆弱的頭頸，此時絕對不要起步亂跑！' },
-      { id: 'eq_safe', text: '【避開傾倒墜物】遠離可能位移的大木櫃、衣櫃、冰箱，防範玻璃門、吊置冷氣或裝飾天花板脫落砸傷。' },
-      { id: 'eq_extinguish', text: '【一停即關火源】搖晃稍微停歇的黃金間隔，迅速關閉瓦斯總閥及加熱電器，截斷一切二次火災的潛在因素。' },
-      { id: 'eq_open', text: '【推開玄關大門】立即手動推開家中大門並放置鞋盒阻擋，防止房屋結構變形導緻木門卡死，封閉黃金逃生路徑。' },
-      { id: 'eq_boots', text: '【厚便鞋避難】穿上床頭常備之厚鞋底工作鞋防範室內滿地碎玻璃，沿走廊向開闊的安全大操場或防災公園挺進，嚴禁搭電梯。' }
-    ]
-  },
-  flooding: {
-    title: '🌊 住宅積水、家裡開始淹水倒灌怎麼辦？',
-    subtitle: '適用暴雨鋒面全島特報、突發性淹溢與水流阻斷處置',
-    color: 'from-blue-950 to-blue-900 text-white border-blue-700 hover:from-blue-900 hover:to-blue-850',
-    badge: '暴雨溢流、水流倒灌、阻斷警戒',
-    steps: [
-      { id: 'f_breaker', text: '【一有溢流即切總電】水進玄關前，迅速拉下一樓全戶總配線盤大斷路器、關閉總瓦斯閥，杜絕水中藏電導電，形成致命電網！' },
-      { id: 'f_vertical', text: '【執行垂直高避難】抓起處方用藥、防災包、貴重物資，往公寓二樓以上或鋼筋混凝土高位移轉，切忌留守一樓。' },
-      { id: 'f_walk', text: '【切勿涉水行進】水深若超過 15 公分（過腳踝），絕對不要試圖徒步跨越路面、溪谷！混濁泥流下排水蓋极易被吸開，極度危險。' },
-      { id: 'f_sandbags', text: '【封堵與沙包阻絕】用防水沙包或檔水門進行密封。一旦水淹到大腿以上或被圍困，立即往頂樓尋找避雷核心，搖晃光源待援。' }
-    ]
-  },
-  typhoon: {
-    title: '🌀 強風暴風突發、迎風玻璃吹裂怎麼辦？',
-    subtitle: '迎風面超強風切（11級風以上）安全避護與水泥掩體應對',
-    color: 'from-emerald-950 to-emerald-900 text-white border-emerald-700 hover:from-emerald-900 hover:to-emerald-850',
-    badge: '超強十一級陣風、風切、招牌掉落警告',
-    steps: [
-      { id: 't_core', text: '【退入建築核心】大風肆虐時，一律遠離迎風大片落地窗體（防強風灌破玻璃飛石擊傷），進入無窗衛浴或混凝土走廊結構避風。' },
-      { id: 't_latch', text: '【緊固防堂內風】緊鎖背風迎風每一扇房門窗，防止強風吹開形成穿堂大風，產生強烈內氣壓將鐵皮棚、輕鋼瓦瞬間掀掉。' },
-      { id: 't_objects', text: '【收置室外墜物】颱風登陸前，徹底查清陽台懸空盆栽、曝曬架，嚴格鎖緊排水。在颱風宣布停班時，切勿再外出。' },
-      { id: 't_outage', text: '【防災不斷電應對】颱風極易拍斷電路造成全區停電，睡覺前保證床頭及重要玄關插置好有自亮功能的應急免持照明手電。' }
-    ]
-  },
-  landslide: {
-    title: '🏔️ 收到土石流土砂預警撤離通知怎麼辦？',
-    subtitle: '適用高山丘陵、阿里山/蘇花沿線、黃色/紅色警戒主動避防',
-    color: 'from-amber-950 to-amber-900 text-white border-amber-700 hover:from-amber-900 hover:to-amber-850',
-    badge: '白天預警、土砂崩山、黃紅特報警戒',
-    steps: [
-      { id: 'l_evac', text: '【白天預警果斷撤】接獲村里黃/紅色警戒通知，應乘白天視線清朗時果斷撤離！千万不要拖沓到深夜暴雨封路、停電時。' },
-      { id: 'l_angle', text: '【垂直泥流流向跑】若突遇土崩泥流阻路，應朝向土石流侵瀉方向的「垂直兩側高地高坡」快速逃生，絕不顺流往下游河谷跑！' },
-      { id: 'l_isolation', text: '【備戰孤島物資】高地極易成為救援空難斷路區。清點避難包：14天份重症藥、身分證明影本、備用大容量電、小額硬幣防斷網。' }
-    ]
-  },
-  fire: {
-    title: '🔥 室內火災防範：別慌、壓低身姿避難！',
-    subtitle: '適用室內火災、濃煙逃生與自救應對（秉持火場求生黃金法則）',
-    color: 'from-rose-950 to-rose-900 text-white border-rose-700 hover:from-rose-900 hover:to-rose-850',
-    badge: '濃煙、火災、火場逃生避護',
-    steps: [
-      { id: 'fr_smoke', text: '【壓低身姿避濃煙】遇濃煙應採取低姿勢爬行，因空氣在地面附近（離地 30 公分以下）最乾淨，利用手肘與膝蓋前進。' },
-      { id: 'fr_door', text: '【觸摸把手探火情】開門前先用手背觸摸金屬門把。若把手燙手，代表門外已有大火，此時絕對不要開門！' },
-      { id: 'fr_seal', text: '【濕毛巾塞住門縫】若無法開門逃生，應將門鎖好，並用濕毛巾、衣物或膠帶塞住門縫與空隙，防止致命濃煙與毒氣滲入。' },
-      { id: 'fr_window', text: '【退向窗邊揮舞呼救】關好門後，退向臨街或臨外之窗邊，撥打 119 通報自己受困位置，並揮舞手電筒或亮色衣物呼救。' }
-    ]
-  }
-};
+const CWA_API_KEY = ""; // 預載中央氣象署 API 金鑰
+const SUSPENSION_RESOURCE_ID = "3160-54"; // 停班停課 API Resource ID
 
 export default function App() {
   const [location, setLocation] = useState(() => localStorage.getItem('disaster_location_v1') || '嘉義市中山路199號');
@@ -96,6 +34,18 @@ export default function App() {
     };
   });
   
+  // High contrast mode / Theme system (Dark mode)
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    const saved = localStorage.getItem('disaster_theme_dark');
+    return saved ? saved === 'true' : false;
+  });
+
+  // Dual Toggle Mode: "routine" (平時準備 - Slate Blue / Sage Green) vs "emergency" (緊急當下 - Alert Orange / Bright Yellow)
+  const [siteMode, setSiteMode] = useState<'routine' | 'emergency'>('routine');
+
+  // Currently expanded guide card ("earthquake_securing" | "water_outage" | "family_plan")
+  const [activeScenarioCard, setActiveScenarioCard] = useState<string | null>(null);
+
   const [activeScenario, setActiveScenario] = useState<'normal' | 'typhoon' | 'rain' | 'earthquake'>('normal');
   const [selectedSuspensionRegion, setSelectedSuspensionRegion] = useState<'north' | 'central' | 'south' | 'east'>('north');
   const [environmentDesc, setEnvironmentDesc] = useState(() => localStorage.getItem('disaster_env_desc_v1') || '');
@@ -124,31 +74,41 @@ export default function App() {
   });
   const [isOffline, setIsOffline] = useState(() => typeof navigator !== 'undefined' ? !navigator.onLine : false);
 
-  React.useEffect(() => {
+  // Sync to local storage
+  useEffect(() => {
+    localStorage.setItem('disaster_theme_dark', isDarkMode.toString());
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [isDarkMode]);
+
+  useEffect(() => {
     localStorage.setItem('disaster_location_v1', location);
   }, [location]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     localStorage.setItem('disaster_family_v1', JSON.stringify(familyProfile));
   }, [familyProfile]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     localStorage.setItem('disaster_member_count_v1', memberCount.toString());
   }, [memberCount]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     localStorage.setItem('disaster_env_desc_v1', environmentDesc);
   }, [environmentDesc]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     localStorage.setItem('disaster_supplies_v1', JSON.stringify(supplies));
   }, [supplies]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     localStorage.setItem('disaster_emergency_checks_v1', JSON.stringify(emergencyChecks));
   }, [emergencyChecks]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const handleOnline = () => setIsOffline(false);
     const handleOffline = () => setIsOffline(true);
     window.addEventListener('online', handleOnline);
@@ -159,8 +119,8 @@ export default function App() {
     };
   }, []);
 
-  // Sync profile-specific items to the supplies list automatically when category toggled
-  React.useEffect(() => {
+  // Synchronize profile-specific materials
+  useEffect(() => {
     setSupplies(prev => {
       let updated = [...prev];
       
@@ -207,7 +167,7 @@ export default function App() {
   const [sidebarTab, setSidebarTab] = useState<'supplies' | 'chat'>('supplies');
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
 
-  // --- Live Weather and CWA Warning Alert States & Logic ---
+  // Realtime Weather & Disaster warnings
   const [liveWeather, setLiveWeather] = useState<{
     temp: number;
     precipitation: number;
@@ -237,126 +197,56 @@ export default function App() {
     switch(region) {
       case 'north':
         return activeScenario === 'typhoon' 
-          ? { class: 'bg-red-50 border-red-200 text-red-700', status: '達停止上班上課標準！', counties: ['基隆市 今天停止上班、今天停止上課。', '臺北市 今天停止上班、今天停止上課。', '新北市 今天停止上班、今天停止上課。'] }
-          : { class: 'bg-stone-50 border-stone-200 text-stone-700', status: '照常上班及上課。', counties: ['基隆市 今天照常上班、今天照常上課。', '臺北市 今天照常上班、今天照常上課。', '新北市 今天照常上班、今天照常上課。'] };
+          ? { class: 'bg-red-50 border-red-200 text-red-700 dark:bg-red-950/30 dark:border-red-900/40 dark:text-red-400', status: '達停止上班上課標準！', counties: ['基隆市 今天停止上班、今天停止上課。', '臺北市 今天停止上班、今天停止上課。', '新北市 今天停止上班、今天停止上課。'] }
+          : { class: 'bg-stone-50 border-stone-200 text-stone-700 dark:bg-stone-900 dark:border-stone-800 dark:text-stone-300', status: '照常上班及上課。', counties: ['基隆市 今天照常上班、今天照常上課。', '臺北市 今天照常上班、今天照常上課。', '新北市 今天照常上班、今天照常上課。'] };
       case 'central':
-        return { class: 'bg-stone-50 border-stone-200 text-stone-700', status: '照常上班及上課。', counties: ['臺中市 今天照常上班、今天照常上課。', '彰化縣 今天照常上班、今天照常上課。', '南投縣 今天照常上班、今天照常上課。'] };
+        return { class: 'bg-stone-50 border-stone-200 text-stone-700 dark:bg-stone-900 dark:border-stone-800 dark:text-stone-300', status: '照常上班及上課。', counties: ['臺中市 今天照常上班、今天照常上課。', '彰化縣 今天照常上班、今天照常上課。', '南投縣 今天照常上班、今天照常上課。'] };
       case 'south':
-        return { class: 'bg-stone-50 border-stone-200 text-stone-700', status: '照常上班及上課。', counties: ['臺南市 今天照常上班、今天照常上課。', '高雄市 今天照常上班、今天照常上課。', '屏東縣 今天照常上班、今天照常上課。'] };
+        return { class: 'bg-stone-50 border-stone-200 text-stone-700 dark:bg-stone-900 dark:border-stone-800 dark:text-stone-300', status: '照常上班及上課。', counties: ['臺南市 今天照常上班、今天照常上課。', '高雄市 今天照常上班、今天照常上課。', '屏東縣 今天照常上班、今天照常上課。'] };
       case 'east':
         return activeScenario === 'typhoon' || activeScenario === 'earthquake'
-          ? { class: 'bg-red-50 border-red-200 text-red-700', status: '部分鄉鎮停班停課', counties: ['花蓮縣 秀林鄉: 今天停止上班、今天停止上課。\n其他鄉鎮照常', '臺東縣 今天照常上班、今天照常上課。'] }
-          : { class: 'bg-stone-50 border-stone-200 text-stone-700', status: '照常上班及上課。', counties: ['宜蘭縣 今天照常上班、今天照常上課。', '花蓮縣 今天照常上班、今天照常上課。', '臺東縣 今天照常上班、今天照常上課。'] };
+          ? { class: 'bg-red-50 border-red-200 text-red-700 dark:bg-red-950/30 dark:border-red-900/40 dark:text-red-400', status: '部分鄉鎮停班停課', counties: ['花蓮縣 秀林鄉: 今天停止上班、今天停止上課。\n其他鄉鎮照常', '臺東縣 今天照常上班、今天照常上課。'] }
+          : { class: 'bg-stone-50 border-stone-200 text-stone-700 dark:bg-stone-900 dark:border-stone-800 dark:text-stone-300', status: '照常上班及上課。', counties: ['宜蘭縣 今天照常上班、今天照常上課。', '花蓮縣 今天照常上班、今天照常上課。', '臺東縣 今天照常上班、今天照常上課。'] };
       default:
-        return { class: 'bg-stone-50 border-stone-200 text-stone-700', status: '照常上班及上課。', counties: [] };
+        return { class: 'bg-stone-50 border-stone-200 text-stone-700 dark:bg-stone-900 dark:border-stone-800 dark:text-stone-300', status: '無資料', counties: [] };
     }
   };
 
-  const getWeatherCondition = (code: number) => {
-    switch (code) {
-      case 0: return "晴朗無雲";
-      case 1:
-      case 2:
-      case 3: return "多雲時晴";
-      case 45:
-      case 48: return "局部濃霧";
-      case 51:
-      case 53:
-      case 55: return "局部毛毛雨";
-      case 56:
-      case 57: return "局部凍雨";
-      case 61: return "小雨";
-      case 63: return "中對流降雨";
-      case 65: return "大雨/暴雨";
-      case 66:
-      case 67: return "凍雨/豪降水";
-      case 71:
-      case 73:
-      case 75: return "降雪量累積";
-      case 77: return "冰雹或細雪";
-      case 80:
-      case 81:
-      case 82: return "短暫強陣雨";
-      case 85:
-      case 86: return "局部雨夾雪";
-      case 95: return "雷陣雨氣候";
-      case 96:
-      case 99: return "雷暴雨加強風";
-      default: return "正常大氣對流";
-    }
-  };
-
-  const getBeautifiedWind = (speed: number) => {
-    const ms = speed / 3.6;
-    if (ms < 0.3) return "0 級 (無風)";
-    if (ms < 1.5) return "1 級 (軟風)";
-    if (ms < 3.3) return "2 級 (輕風)";
-    if (ms < 5.4) return "3 級 (微風)";
-    if (ms < 7.9) return "4 級 (和風)";
-    if (ms < 10.7) return "5 級 (清風)";
-    if (ms < 13.8) return "6 級 (強風)";
-    if (ms < 17.1) return "7 級 (疾風)";
-    if (ms < 20.7) return "8 級 (大風)";
-    if (ms < 24.4) return "9 級 (烈風)";
-    if (ms < 28.4) return "10 級 (狂風)";
-    return "11 級以上強烈暴風";
-  };
-
-  const loadRealtimeWeather = async (targetLoc: string) => {
-    if (!targetLoc.trim()) return;
+  const loadRealtimeWeather = async (addr: string) => {
     setIsFetchingWeather(true);
     setWeatherError(false);
-    
-    const now = new Date();
-    const timeStr = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
-
-    if (!CWA_API_KEY) {
-      // 模擬示範資料
-      setLiveWeather({
-        temp: 28.5,
-        precipitation: 15.5,
-        windSpeed: 25,
-        weatherCode: 65,
-        condition: "大雨/暴雨",
-        locationName: targetLoc.split(',')[0],
-        beautifiedWind: "6 級 (強風)",
-        isDemo: true,
-        updatedAt: timeStr
-      });
-      setIsFetchingWeather(false);
-      return;
-    }
-
     try {
-      const url = `https://opendata.cwa.gov.tw/api/v1/rest/datastore/O-A0001-001?Authorization=${CWA_API_KEY}&format=JSON`;
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
-      const res = await fetch(url, { signal: controller.signal });
-      clearTimeout(timeoutId);
+      const now = new Date();
+      const formatTime = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
       
-      if (!res.ok) throw new Error("CWA API 錯誤");
-      const data = await res.json();
-      
-      const stations = data?.records?.Station || [];
-      if (stations.length === 0) throw new Error("查無氣象站");
-      
-      const st = stations[0]; // 簡化：取第一筆測站
-      const temp = st.WeatherElement?.AirTemperature || 25;
-      const precip = st.WeatherElement?.Now?.Precipitation || 0;
-      const wind = st.WeatherElement?.WindSpeed || 0;
-      const code = 0; // fallback code since O-A0001-001 doesn't map perfectly to open-meteo numeric codes
-      
-      setLiveWeather({
-        temp,
-        precipitation: precip,
-        windSpeed: wind,
-        weatherCode: code,
-        condition: st.WeatherElement?.Weather || "多雲",
-        locationName: st.StationName || targetLoc.split(',')[0],
-        beautifiedWind: getBeautifiedWind(wind),
-        isDemo: false,
-        updatedAt: timeStr
-      });
+      const res = await fetch(`/api/weather?location=${encodeURIComponent(addr)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setLiveWeather({
+          temp: data.temp,
+          precipitation: data.precipitation,
+          windSpeed: data.windSpeed,
+          weatherCode: data.weatherCode,
+          condition: data.condition,
+          locationName: data.locationName || addr,
+          beautifiedWind: data.windSpeed > 10 ? '西南強風' : '風速舒緩',
+          isDemo: false,
+          updatedAt: formatTime
+        });
+      } else {
+        // Fallback demo data based on active scenario if API is missing
+        setLiveWeather({
+          temp: activeScenario === 'typhoon' ? 24 : activeScenario === 'rain' ? 22 : 27,
+          precipitation: activeScenario === 'typhoon' ? 45 : activeScenario === 'rain' ? 95 : 0,
+          windSpeed: activeScenario === 'typhoon' ? 42 : activeScenario === 'rain' ? 8 : 1.5,
+          weatherCode: activeScenario === 'typhoon' ? 9 : activeScenario === 'rain' ? 8 : 1,
+          condition: activeScenario === 'typhoon' ? '⚡ 猛烈強風雨' : activeScenario === 'rain' ? '🌧 豪雨密佈' : '☀ 晴空舒爽',
+          locationName: addr,
+          beautifiedWind: activeScenario === 'typhoon' ? '12級 暴隆狂風' : '清徐微風',
+          isDemo: true,
+          updatedAt: formatTime
+        });
+      }
     } catch (e) {
       console.error("CWA weather error:", e);
       setWeatherError(true);
@@ -380,7 +270,43 @@ export default function App() {
     }
   };
 
+  const loadSuspensionData = async () => {
+    try {
+      const controller = new AbortController();
+      const id = setTimeout(() => controller.abort(), 5000);
+      const res = await fetch(`https://data.gov.tw/api/v2/rest/datastore/${SUSPENSION_RESOURCE_ID}`, {
+        signal: controller.signal
+      });
+      clearTimeout(id);
+      if (!res.ok) throw new Error("API failed");
+      await res.json();
+      
+      const now = new Date();
+      setSuspensionDataLocal({
+        isDemo: false,
+        error: false,
+        updatedAt: now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0')
+      });
+    } catch(e) {
+      const now = new Date();
+      setSuspensionDataLocal({
+        isDemo: true,
+        error: true,
+        updatedAt: now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0')
+      });
+    }
+  };
+
+  useEffect(() => {
+    loadRealtimeWeather(location);
+    loadCwaAlerts();
+    loadSuspensionData();
+    const inv = setInterval(loadSuspensionData, 10 * 60 * 1000);
+    return () => clearInterval(inv);
+  }, []);
+
   const handleSaveApiKey = (newKey: string) => {
+    console.log('API Key 按下，目前值：', newKey);
     setCustomApiKey(newKey);
     const trimmed = newKey.trim();
     if (trimmed) {
@@ -390,16 +316,27 @@ export default function App() {
     }
   };
 
+  // Submit button explicit onClick handler tracking as user requested
+  const handleApiKeySubmit = () => {
+    console.log('API Key 按下，現行Key:', customApiKey);
+    const trimmed = customApiKey.trim();
+    if (trimmed) {
+      localStorage.setItem("custom_gemini_key", trimmed);
+      alert("API 金鑰已成功送出並儲存於本地！");
+    } else {
+      localStorage.removeItem("custom_gemini_key");
+      alert("儲存空值，個人金鑰已清除。");
+    }
+  };
+
   const handleAnalyze = async (overrideProfile?: FamilyProfile, overrideEnv?: string) => {
     if (!location.trim()) return;
     setIsAnalyzing(true);
     try {
-      // Refresh current live weather
       await loadRealtimeWeather(location);
       
       let currentEnv = overrideEnv !== undefined ? overrideEnv : environmentDesc;
       
-      // Auto-extract environment if empty
       if (!currentEnv.trim()) {
         setIsAnalyzingEnv(true);
         try {
@@ -407,7 +344,7 @@ export default function App() {
           currentEnv = data.environmentDesc;
           setEnvironmentDesc(currentEnv);
         } catch (envErr) {
-          console.error("Auto env analysis failed, falling back to empty:", envErr);
+          console.error("Auto env analysis failed:", envErr);
         } finally {
           setIsAnalyzingEnv(false);
         }
@@ -426,7 +363,7 @@ export default function App() {
     }
   };
 
-  const analysisAutoTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+  const analysisAutoTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const triggerAutoAnalyze = (profile?: FamilyProfile, env?: string) => {
     if (analysisAutoTimeoutRef.current) clearTimeout(analysisAutoTimeoutRef.current);
@@ -469,7 +406,6 @@ export default function App() {
       async (position) => {
         const { latitude, longitude } = position.coords;
         try {
-          // Fetch from Nominatim reverse geocoding API to get a real-world address in Taiwan
           const response = await fetch(
             `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=zh-TW`
           );
@@ -485,7 +421,6 @@ export default function App() {
             const road = addr.road || addr.pedestrian || "";
             const houseNumber = addr.house_number ? `${addr.house_number}號` : "";
             
-            // Construct address manually for clean, readable output
             taiwanAddress = `${city}${suburb}${road}${houseNumber}`;
           }
           
@@ -494,7 +429,6 @@ export default function App() {
           }
           
           if (taiwanAddress) {
-            // Clean up lead zip code numbers if they exist
             taiwanAddress = taiwanAddress.replace(/^\d+/, '').trim();
             setLocation(taiwanAddress);
             loadRealtimeWeather(taiwanAddress);
@@ -528,42 +462,6 @@ export default function App() {
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
   };
-
-  const loadSuspensionData = async () => {
-    try {
-      const controller = new AbortController();
-      const id = setTimeout(() => controller.abort(), 5000);
-      const res = await fetch(`https://data.gov.tw/api/v2/rest/datastore/${SUSPENSION_RESOURCE_ID}`, {
-        signal: controller.signal
-      });
-      clearTimeout(id);
-      if (!res.ok) throw new Error("API failed");
-      // Simulate real data process if needed
-      await res.json();
-      
-      const now = new Date();
-      setSuspensionDataLocal({
-        isDemo: false,
-        error: false,
-        updatedAt: now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0')
-      });
-    } catch(e) {
-      const now = new Date();
-      setSuspensionDataLocal({
-        isDemo: true,
-        error: true,
-        updatedAt: now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0')
-      });
-    }
-  };
-
-  React.useEffect(() => {
-    loadRealtimeWeather(location);
-    loadCwaAlerts();
-    loadSuspensionData();
-    const inv = setInterval(loadSuspensionData, 10 * 60 * 1000);
-    return () => clearInterval(inv);
-  }, []);
 
   const handleChat = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -706,11 +604,11 @@ ${missingList || '所有物資皆已備妥！'}
         shelterGuidance: {
           nearestOptions: [
             "中正體育館（緊急避難集中點）",
-            "花蓮縣立體育中學（物資救援空投點）"
+            "基隆市立中正國中避難中心"
           ],
           safetyCriteria: [
-            "避難路線應避開高樓、工地及圍牆，注意懸掛物掉落。",
-            "若路面有嚴重龜裂或下陷，請繞道而行。"
+            "避難路線應避開山坡邊緣或有落石危險的狹窄巷道。",
+            "避風撤離，嚴格查清並避免靠近高空易墜广告看板與大樹。"
           ]
         },
         deficiencyAnalysis: {
@@ -731,223 +629,439 @@ ${missingList || '所有物資皆已備妥！'}
     }, 1200);
   };
 
-
-
   return (
-    <div className="min-h-screen bg-[#FAF9F6] text-stone-900 font-sans selection:bg-[#7f1d1d]/20 sm:p-4 md:p-6 lg:p-8">
+    <div className={`min-h-screen font-sans transition-colors duration-300 ${
+      isDarkMode 
+        ? 'bg-stone-950 text-stone-100 selection:bg-orange-500/30' 
+        : 'bg-stone-50 text-stone-900 selection:bg-red-500/20'
+    } p-3 sm:p-5 md:p-8`}>
       
-      {/* Mobile Settings floating button */}
-      <button
-        onClick={() => setIsMobileDrawerOpen(true)}
-        className="md:hidden fixed bottom-6 right-6 z-40 bg-[#7f1d1d] text-white p-4 justify-center items-center rounded-full shadow-[0_4px_16px_rgba(127,29,29,0.4)] flex gap-2 font-bold cursor-pointer transition-transform hover:scale-105 active:scale-95"
-      >
-        <Settings className="w-5 h-5" />
-      </button>
-
-      {/* Mobile Drawer Overlay */}
-      {isMobileDrawerOpen && (
-        <div 
-          className="md:hidden fixed inset-0 bg-stone-900/60 backdrop-blur-sm z-40 transition-opacity duration-300"
-          onClick={() => setIsMobileDrawerOpen(false)}
-        />
-      )}
-      
-      {/* Dynamic Background Image based on weather / mood */}
-      <div 
-        className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat transition-all duration-1000 opacity-[0.03] pointer-events-none"
-        style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1502481851512-e9e2529bfbf9?q=80&w=2069&auto=format&fit=crop")' }}
-      />
-      
-      <div className="max-w-7xl mx-auto w-full relative z-10">
+      {/* Dynamic Header */}
+      <header className="max-w-7xl mx-auto mb-6 flex flex-col md:flex-row items-center justify-between gap-4 border-b border-stone-250 dark:border-stone-800 pb-5">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-slate-900 dark:bg-orange-600 text-white flex items-center justify-center shadow-md shrink-0">
+            <ShieldAlert className="w-6 h-6 animate-pulse" />
+          </div>
+          <div className="text-left">
+            <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight dark:text-white">
+              防災生活與居住準備指南
+            </h1>
+            <p className="text-xs text-stone-500 dark:text-stone-400 font-bold">
+              台灣家庭必備 ｜ 基於中央氣象署即時預警與 Google Gemini AI 個人化自救分析
+            </p>
+          </div>
+        </div>
         
-        {/* Header Section */}
-        <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 lg:mb-10 bg-white/60 backdrop-blur pb-4 sm:pb-0 border-b border-stone-200/50 sm:border-none p-4 sm:p-0 rounded-2xl sm:rounded-none">
-          <div className="flex flex-col gap-1.5">
-            <div className="flex items-center gap-2">
-              <div className="flex items-center justify-center w-8 h-8 rounded-xl bg-stone-900 text-white shadow-md shadow-stone-900/20">
-                <ShieldAlert className="w-4 h-4" />
-              </div>
-              <span className="font-extrabold tracking-widest text-[#7f1d1d] text-[11px] bg-[#7f1d1d]/10 px-2 py-1 rounded-md border border-[#7f1d1d]/20 uppercase">A.I. R-DEFENSE</span>
-            </div>
-            <div>
-              <h1 className="text-base sm:text-lg font-bold tracking-widest text-stone-900 font-display">
-                災防整合與家戶整備守護系統
-              </h1>
-              <p className="text-[10px] hidden sm:block text-stone-500 font-medium tracking-wider mt-0.5">
-                AI 地理氣象交叉分析｜個人化避難時程表｜物資盤點
-              </p>
-            </div>
+        {/* Header toolbar stats & controls */}
+        <div className="flex flex-wrap items-center gap-3">
+          {/* PWA offline readiness status */}
+          <div className={`text-xs px-3.5 py-1.5 rounded-full border font-bold flex items-center gap-1.5 shadow-xs ${
+            isOffline 
+              ? 'bg-red-50/90 text-red-700 border-red-200 dark:bg-red-950/20 dark:border-red-900 dark:text-red-400' 
+              : 'bg-emerald-50/90 text-emerald-800 border-emerald-200 dark:bg-emerald-950/20 dark:border-emerald-900 dark:text-emerald-400'
+          }`}>
+            <span className={`w-2 h-2 rounded-full ${isOffline ? 'bg-red-600 animate-ping' : 'bg-emerald-500 animate-pulse'}`} />
+            <span>{isOffline ? '離線備用模式 (已備份)' : 'PWA 離線就緒 ｜ 網路已連接'}</span>
           </div>
 
-          {/* Desktop/Tablet Action Bar */}
-          <div className="flex items-center gap-3 w-full sm:w-auto overflow-x-auto hide-scrollbar pb-1 sm:pb-0">
-             <button className="flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-stone-900 hover:bg-stone-800 text-white rounded-lg text-xs sm:text-sm font-bold transition-all active:scale-95 shrink-0 shadow-sm cursor-pointer min-h-[52px]">
-               <Activity className="w-4 h-4 text-rose-400" />
-               <span className="tracking-wide">防災包掃描 (0/12)</span>
-             </button>
-             <button className="flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-white border border-stone-200 hover:border-stone-300 hover:bg-stone-50 text-stone-750 rounded-lg text-xs sm:text-sm font-bold transition-all active:scale-95 shrink-0 shadow-[0_2px_8px_-4px_rgba(0,0,0,0.05)] cursor-pointer min-h-[52px]">
-               <FileText className="w-4 h-4 text-stone-500" />
-               <span className="tracking-wide">列印避難指引</span>
-             </button>
+          {/* Theme switcher */}
+          <button
+            onClick={() => setIsDarkMode(!isDarkMode)}
+            className="w-10 h-10 rounded-xl bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-800 text-stone-700 dark:text-stone-300 flex items-center justify-center hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors duration-200 cursor-pointer min-h-[48px]"
+            aria-label="切換高對比深色模式"
+            title="一鍵切換深色與省電模式"
+          >
+            {isDarkMode ? <Sun className="w-5 h-5 text-amber-400" /> : <Moon className="w-5 h-5 text-indigo-900" />}
+          </button>
+        </div>
+      </header>
+
+      {/* Hero Mode Dual Toggle (Routine vs Emergency NOW) */}
+      <section className="max-w-7xl mx-auto mb-8 bg-white dark:bg-stone-900 rounded-3xl p-5 md:p-8 border border-stone-250 dark:border-stone-800 shadow-[0_4px_24px_-6px_rgba(0,0,0,0.03)] relative overflow-hidden text-left">
+        <div className="absolute right-0 top-0 w-64 h-64 bg-slate-100 dark:bg-orange-950/10 rounded-full blur-3xl pointer-events-none" />
+        
+        <div className="relative z-10 flex flex-col xl:flex-row xl:items-center justify-between gap-6 pb-6 border-b border-stone-150 dark:border-stone-800">
+          <div className="max-w-xl">
+            <span className="text-xs bg-slate-900 dark:bg-orange-600 text-white font-extrabold px-3 py-1 rounded-full uppercase tracking-widest leading-none">
+              雙軌災防防禦系統 Active Switch
+            </span>
+            <h2 className="text-2xl sm:text-3xl font-black mt-3 tracking-tight leading-tight dark:text-white">
+              {siteMode === 'routine' ? '🧘‍♂️ 平常心，做好房舍與物資儲備' : '🚨 臨震暴洪，極速避難自救指導'}
+            </h2>
+            <p className="text-sm text-stone-500 dark:text-stone-400 mt-2 font-medium">
+              {siteMode === 'routine' 
+                ? '採用 Slate Blue 和 Sage Green 配色，側重家具結構固定、家人特殊需求配置。有備無患，打造最放心的住宅韌性基礎。'
+                : '採用高醒目警示色與明黃。此一模式在遭遇地震搖晃、淹水及強風時，1秒提供撤離命令、緊急電話直撥、鄰里避難地圖盤點。'
+              }
+            </p>
           </div>
-        </header>
 
-        <div id="app-main-container" className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 xl:gap-10 items-start">
+          {/* Toggle buttons */}
+          <div className="flex bg-stone-100 dark:bg-stone-950 p-2 rounded-2xl border border-stone-200 dark:border-stone-800 md:self-start xl:self-center">
+            <button
+              onClick={() => setSiteMode('routine')}
+              className={`px-6 py-3.5 rounded-xl font-extrabold text-sm transition-all duration-300 flex items-center gap-2 cursor-pointer ${
+                siteMode === 'routine'
+                  ? 'bg-slate-700 text-white shadow-md dark:bg-slate-800'
+                  : 'text-stone-500 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200 hover:bg-stone-200 dark:hover:bg-stone-900'
+              } min-h-[48px] min-w-[140px]`}
+              role="tab"
+              aria-selected={siteMode === 'routine'}
+            >
+              <Check className="w-4 h-4 text-emerald-400" strokeWidth={3} />
+              <span>平時準備 Routine</span>
+            </button>
+            <button
+              onClick={() => setSiteMode('emergency')}
+              className={`px-6 py-3.5 rounded-xl font-extrabold text-sm transition-all duration-300 flex items-center gap-2 cursor-pointer ${
+                siteMode === 'emergency'
+                  ? 'bg-orange-600 text-white shadow-md'
+                  : 'text-stone-500 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200 hover:bg-stone-200 dark:hover:bg-stone-900'
+              } min-h-[48px] min-w-[140px]`}
+              role="tab"
+              aria-selected={siteMode === 'emergency'}
+            >
+              <div className="w-2 h-2 rounded-full bg-yellow-400 animate-ping" />
+              <span>緊急當下 Emergency</span>
+            </button>
+          </div>
+        </div>
 
-          {/* Left Sidebar: Controls & Settings */}
-          {/* Left Sidebar: Controls & Settings */}
-          <div id="app-left-sidebar" className={`
-             fixed inset-x-0 bottom-0 bg-stone-100 z-50 flex flex-col max-h-[85vh] rounded-t-3xl transition-transform duration-400 shadow-[0_-10px_40px_rgba(0,0,0,0.1)]
-             ${isMobileDrawerOpen ? 'translate-y-0' : 'translate-y-full'}
-             md:static md:translate-y-0 md:bg-transparent md:max-h-[calc(100vh-3rem)] md:rounded-none md:shadow-none md:z-auto md:w-full md:sticky md:top-6
-             lg:col-span-4 xl:col-span-3
-          `}>
-             <div className="flex items-center justify-between md:hidden p-5 pb-4 border-b border-stone-200 shrink-0 bg-stone-100 rounded-t-3xl z-10 relative">
-               <h2 className="text-lg font-bold text-stone-900 tracking-wider flex items-center gap-2">
-                 <Settings className="w-5 h-5 text-[#7f1d1d]" />
-                 防災與位置設定
-               </h2>
-               <button onClick={() => setIsMobileDrawerOpen(false)} className="bg-stone-200/50 rounded-full text-stone-600 min-h-[52px] min-w-[52px] flex items-center justify-center hover:bg-stone-300/50 cursor-pointer">
-                 <X className="w-6 h-6" />
-               </button>
-             </div>
+        {/* Demo Scenario Controller - For quick preview */}
+        <div className="mt-5 flex flex-wrap items-center gap-2 z-10 relative">
+          <span className="text-xs font-bold text-stone-500 dark:text-stone-400 flex items-center gap-1">
+            <Activity className="w-3.5 h-3.5 text-orange-500" />
+            快速模擬災害情境：
+          </span>
+          <button
+            onClick={() => handleSelectScenario('normal')}
+            className={`px-3.5 py-2.5 rounded-lg text-xs font-bold transition-all border cursor-pointer min-h-[48px] ${
+              activeScenario === 'normal' 
+                ? 'bg-slate-500 border-slate-600 text-white' 
+                : 'bg-stone-100 dark:bg-stone-800 border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-300 hover:bg-stone-200'
+            }`}
+          >
+            🟢 平常晴好 (預設)
+          </button>
+          <button
+            onClick={() => handleSelectScenario('typhoon')}
+            className={`px-3.5 py-2.5 rounded-lg text-xs font-bold transition-all border cursor-pointer min-h-[48px] ${
+              activeScenario === 'typhoon' 
+                ? 'bg-orange-600 border-orange-700 text-white animate-pulse' 
+                : 'bg-stone-100 dark:bg-stone-800 border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-300 hover:bg-stone-200'
+            }`}
+          >
+            🌀 強烈颱風 (長輩+外送高危險)
+          </button>
+        </div>
+      </section>
 
-            <div className="flex-1 overflow-y-auto p-5 md:p-0 space-y-4 md:space-y-0 md:flex md:flex-row md:gap-4 md:overflow-x-auto md:snap-x hide-scrollbar lg:flex-col lg:space-y-6 lg:overflow-visible">
+      {/* Main Grid Wrapper */}
+      <main className="max-w-7xl mx-auto flex flex-col lg:grid lg:grid-cols-3 gap-6 text-left">
+        
+        {/* Left Setting Rail & Guides Grid */}
+        <div className="lg:col-span-2 flex flex-col gap-6">
+
+          {/* Conditional Layout depending on Double-Toggle SiteMode */}
+          {siteMode === 'routine' ? (
+            /* ==================== 1. PROGRESSIVE ROUTINE PREPAREDNESS AREA ==================== */
+            <div className="flex flex-col gap-6 animate-in fade-in duration-300">
               
-              {/* Location */}
-              <div className="bg-white rounded-2xl border border-stone-200/80 p-5 shadow-[0_2px_8px_-3px_rgba(0,0,0,0.02)] md:min-w-[320px] md:w-[320px] md:shrink-0 md:snap-center lg:min-w-0 lg:w-auto lg:shrink lg:snap-align-none overflow-hidden">
-                <h3 className="text-xs font-extrabold text-stone-700 flex items-center gap-2 mb-3 tracking-wide uppercase border-b border-stone-100 pb-2.5">
-                  <MapPin className="w-4 h-4 text-[#7f1d1d]" />
-                  居住區域/目標位置
-                </h3>
-                <div className="flex flex-col gap-3">
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={location}
-                      onChange={(e) => setLocation(e.target.value)}
-                      placeholder="請輸入地址、鄉鎮或地標..."
-                      className="w-full bg-stone-50/50 hover:bg-stone-50 focus:bg-white border border-stone-200 rounded-lg pl-3 pr-10 py-2.5 text-stone-900 text-base focus:outline-none focus:ring-1 focus:ring-stone-400 focus:border-stone-400 transition-all font-semibold max-w-full min-h-[52px]"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleGeolocate}
-                      disabled={isLocating}
-                      title="使用 GPS 自動定位"
-                      className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-md hover:bg-stone-200/60 text-[#7f1d1d] hover:text-stone-950 transition-all cursor-pointer disabled:opacity-50 min-h-[44px]"
-                    >
-                      {isLocating ? (
-                        <Loader2 className="w-4 h-4 animate-spin text-[#7f1d1d]" />
-                      ) : (
-                        <Compass className="w-4 h-4 hover:scale-105 duration-200 transition-transform" />
-                      )}
-                    </button>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={handleGeolocate}
-                      disabled={isLocating || isAnalyzingEnv}
-                      className="select-none border border-stone-200 bg-white hover:bg-stone-50 text-stone-700 rounded-lg py-2 px-3 text-sm font-bold transition-all flex items-center justify-center gap-1.5 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed shadow-none cursor-pointer min-h-[52px]"
-                    >
-                      {isLocating ? (
-                        <>
-                          <Loader2 className="w-3.5 h-3.5 animate-spin text-[#7f1d1d]" />
-                          <span>讀取 GPS...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Compass className="w-3.5 h-3.5 text-[#7f1d1d] shrink-0" />
-                          <span>GPS 定位</span>
-                        </>
-                      )}
-                    </button>
-                    
-                    <button
-                      type="button"
-                      onClick={handleAnalyzeEnvironment}
-                      disabled={isAnalyzingEnv || isLocating || !location.trim()}
-                      className="relative overflow-hidden group select-none border border-stone-200 bg-[#f4f1eb]/60 hover:bg-[#f4f1eb] text-stone-750 rounded-lg py-2 px-3 text-sm font-bold transition-all flex items-center justify-center gap-1.5 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed shadow-none cursor-pointer min-h-[52px]"
-                    >
-                      {isAnalyzingEnv ? (
-                        <>
-                          <Loader2 className="w-3.5 h-3.5 animate-spin text-[#7f1d1d]" />
-                          <span>分析中...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles className="w-3.5 h-3.5 text-[#7f1d1d] group-hover:scale-110 transition-transform shrink-0" />
-                          <span>地理分析</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* API Key settings card */}
-              <div className="bg-white rounded-2xl border border-stone-200/80 p-5 shadow-[0_2px_8px_-3px_rgba(0,0,0,0.02)] transition-all hover:border-stone-300 hover:shadow-[0_4px_12px_-3px_rgba(0,0,0,0.04)] md:min-w-[320px] md:w-[320px] md:shrink-0 md:snap-center lg:min-w-0 lg:w-auto lg:shrink lg:snap-align-none overflow-hidden">
-                <div 
-                  className="flex items-center justify-between cursor-pointer select-none group min-h-[44px]"
-                  onClick={() => setIsAiOpen(!isAiOpen)}
-                >
-                  <h3 className="text-xs font-extrabold text-stone-700 flex items-center gap-2 uppercase tracking-wide">
-                     <Key className="w-4 h-4 text-[#7f1d1d]" />
-                     進階 AI 設定（選填）
+              {/* Dynamic Map and Location setup */}
+              <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-850 rounded-3xl p-6 shadow-sm flex flex-col md:grid md:grid-cols-2 gap-6">
+                <div>
+                  <h3 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2 mb-3 tracking-wide uppercase border-b border-stone-100 dark:border-stone-800 pb-2.5">
+                    <MapPin className="w-4.5 h-4.5 text-slate-700 dark:text-orange-500" />
+                    居住區域 / 目標定位
                   </h3>
-                  <div className={`w-6 h-6 flex items-center justify-center rounded-full bg-stone-50 group-hover:bg-stone-100 transition-transform duration-250 ${isAiOpen ? 'rotate-180' : 'rotate-0'}`}>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-stone-500"><path d="m6 9 6 6 6-6"/></svg>
-                  </div>
-                </div>
-                <div 
-                  className="transition-[max-height] duration-250 ease-in-out overflow-hidden"
-                  style={{ maxHeight: isAiOpen ? '500px' : '0px' }}
-                >
-                  <div className="flex flex-col gap-3 pt-4 border-t border-stone-100 mt-3">
-                    <p className="text-[12px] text-stone-600 leading-relaxed font-semibold">
-                      貼上您的個人 <strong className="text-stone-750 font-extrabold">Gemini API Key</strong> 即可解鎖基於 Google Gemini 2.5 Flash 設計的客製化災害與地脈潛勢分析：
-                    </p>
-                    
+                  <p className="text-xs text-stone-500 dark:text-stone-400 mb-4 leading-relaxed">
+                    請輸入您日常生活的居住位置，或利用下方 GPS 高精度自動定位。系統將依位置分析排水灌注、坡面裂帶以及里鄰防災中心的安全通達路線。
+                  </p>
+                  
+                  <div className="flex flex-col gap-3">
                     <div className="relative">
                       <input
-                        type={showApiKey ? "text" : "password"}
-                        value={customApiKey}
-                        onChange={(e) => handleSaveApiKey(e.target.value)}
-                        placeholder="請在此貼上您的 Gemini API Key (AI_...)"
-                        className="w-full bg-stone-50/50 hover:bg-stone-50 focus:bg-white border border-stone-200 rounded-lg pl-3 pr-10 py-2.5 text-stone-900 text-sm focus:outline-none focus:ring-1 focus:ring-stone-400 focus:border-stone-400 transition-all font-mono placeholder:text-stone-400 max-w-full min-h-[52px]"
+                        type="text"
+                        value={location}
+                        onChange={(e) => setLocation(e.target.value)}
+                        placeholder="請輸入地址、鄉鎮或大廈標誌..."
+                        className="w-full bg-stone-50 dark:bg-stone-950 focus:bg-white border border-stone-200 dark:border-stone-800 text-stone-900 dark:text-white rounded-xl pl-3 pr-10 py-3 text-base focus:outline-none focus:ring-2 focus:ring-slate-500 font-semibold min-h-[48px]"
                       />
                       <button
                         type="button"
-                        onClick={() => setShowApiKey(!showApiKey)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 select-none cursor-pointer p-1 min-h-[44px]"
+                        onClick={handleGeolocate}
+                        disabled={isLocating}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 p-2 hover:bg-stone-200 dark:hover:bg-stone-800 rounded-lg text-slate-700 dark:text-orange-500 min-h-[44px]"
+                        title="使用高精 GPS 定位"
                       >
-                        {showApiKey ? (
-                          <EyeOff className="w-3.5 h-3.5" />
-                        ) : (
-                          <Eye className="w-3.5 h-3.5" />
-                        )}
+                        {isLocating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Compass className="w-5 h-5 hover:scale-105 duration-200 transition-transform" />}
                       </button>
                     </div>
 
-                    <p className="text-[11px] text-stone-500 font-bold leading-normal">
-                      💡 不填寫也可使用全部防災資訊，填寫後可啟用 AI 個人化分析
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        onClick={handleGeolocate}
+                        disabled={isLocating}
+                        className="border border-stone-250 dark:border-stone-800 hover:bg-stone-100 dark:hover:bg-stone-850 hover:text-stone-950 dark:hover:text-white bg-white dark:bg-stone-900 text-stone-750 dark:text-stone-300 rounded-xl py-3 px-4 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer min-h-[48px]"
+                      >
+                        <Compass className="w-4 h-4 text-slate-700 dark:text-orange-500" />
+                        <span>GPS 定位獲取</span>
+                      </button>
+
+                      <button
+                        onClick={handleAnalyzeEnvironment}
+                        disabled={isAnalyzingEnv || !location.trim()}
+                        className="border border-stone-250 dark:border-stone-800 bg-slate-50 hover:bg-slate-100 dark:bg-stone-850 dark:hover:bg-stone-800 text-stone-800 dark:text-stone-100 rounded-xl py-3 px-4 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer min-h-[48px]"
+                      >
+                        {isAnalyzingEnv ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4 text-slate-700 dark:text-orange-500" />}
+                        <span>分析地理水文</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Environment description box */}
+                <div className="bg-stone-50 dark:bg-stone-950 border border-stone-150 dark:border-stone-850 p-4.5 rounded-2xl flex flex-col justify-between">
+                  <div>
+                    <h4 className="text-xs font-extrabold text-stone-600 dark:text-stone-400 uppercase tracking-widest flex items-center gap-1.5 mb-2">
+                      <Home className="w-3.5 h-3.5 text-slate-700 dark:text-orange-500" />
+                      地脈描述及環境脆弱特點
+                    </h4>
+                    <textarea
+                      value={environmentDesc}
+                      onChange={(e) => setEnvironmentDesc(e.target.value)}
+                      placeholder="點值「分析地理水文」大自理盤點，或自行描述如「臨近陡坡山腳」、「周遭無大型高壓電線桿」等細微特徵..."
+                      className="w-full bg-transparent border-none text-stone-800 dark:text-stone-200 text-sm focus:outline-none resize-none font-medium h-24 placeholder:text-stone-400"
+                    />
+                  </div>
+                  <div className="text-[11px] text-stone-400 font-bold border-t border-stone-200/50 dark:border-stone-800/50 pt-2 flex items-center justify-between">
+                    <span>備災特點分析參數</span>
+                    <span>自動備份保存中</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Family specific attributes config with increased click heights */}
+              <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-850 rounded-3xl p-6 shadow-sm">
+                <h3 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2 mb-3 tracking-wide uppercase border-b border-stone-100 dark:border-stone-800 pb-2.5">
+                  <HeartPulse className="w-4.5 h-4.5 text-slate-700 dark:text-orange-500" />
+                  家屬特殊防護屬性配置 (動態物資同步)
+                </h3>
+                <p className="text-xs text-stone-550 dark:text-stone-400 mb-5 leading-normal">
+                  勾選家屬屬性後，右側「物資避難防備清單」將自動合併加載家屬所需的特設藥、尿布、反光防風雨具及不斷電應急包物資，確保防護全面到位。
+                </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                  {[
+                    { key: 'hasToddler', emoji: '👶', title: '有嬰幼兒需求（學齡前）', desc: '動態加載奶粉、紙尿褲、應急小兒常備藥物' },
+                    { key: 'hasElderly', emoji: '👴', title: '有高齡長輩同行或獨居', desc: '動態加載七天慢病備用處方藥、夜起感應手電燈' },
+                    { key: 'hasChronicIllness', emoji: '🏥', title: '有慢性重症常備處方药需求', desc: '提醒隨身必備胰島素或降血壓、心血管密閉藥袋' },
+                    { key: 'hasMobilityIssues', emoji: '♿', title: '有行動不便、輪椅、拐杖需求', desc: '引導指定高承載無障礙垂直避難路線及疏運協助人' },
+                    { key: 'hasDeliveryRider', emoji: '🛵', title: '家屬有外勤、外送騎乘工作者', desc: '提醒颱風停班強力斷單、高規格反光兩截套鞋與防滑' }
+                  ].map((family) => {
+                    const active = !!(familyProfile as any)[family.key];
+                    return (
+                      <div
+                        key={family.key}
+                        onClick={() => handleProfileChange(family.key as any)}
+                        className={`flex items-start gap-3.5 p-4 rounded-xl border cursor-pointer select-none transition-all ${
+                          active
+                            ? 'bg-emerald-50/50 border-emerald-300 dark:bg-emerald-950/20 dark:border-emerald-900'
+                            : 'bg-stone-50 border-stone-200 dark:bg-stone-950 dark:border-stone-800 hover:border-stone-350 hover:bg-stone-100/40 dark:hover:bg-stone-900'
+                        } min-h-[64px]`}
+                      >
+                        <div className="mt-0.5">
+                          <div className={`w-[22px] h-[22px] rounded border flex items-center justify-center transition-all ${
+                            active ? 'bg-emerald-600 border-emerald-600 text-white' : 'border-stone-300 bg-white dark:bg-stone-900 text-transparent'
+                          }`}>
+                            <Check className="w-3.5 h-3.5 text-white" strokeWidth={3.5} />
+                          </div>
+                        </div>
+                        <div className="flex-1 text-left">
+                          <span className="text-sm font-extrabold text-stone-900 dark:text-white flex items-center gap-1.5">
+                            <span className="text-base">{family.emoji}</span>
+                            <span>{family.title}</span>
+                          </span>
+                          <span className="block text-[11px] text-stone-450 dark:text-stone-400 mt-1 font-semibold leading-normal">
+                            {family.desc}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Scenario Guide Cards (情境導覽卡片) with Hover Details click drawer inside */}
+              <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-850 rounded-3xl p-6 shadow-sm">
+                <h3 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2 mb-3 tracking-wide uppercase border-b border-stone-100 dark:border-stone-800 pb-2.5">
+                  <Compass className="w-4.5 h-4.5 text-slate-700 dark:text-orange-500" />
+                  家庭備災三大核心情境卡 ｜ Hover ＆ Click 自救指南
+                </h3>
+                <p className="text-xs text-stone-550 dark:text-stone-400 mb-5 leading-normal">
+                  點選卡片即可在下方動態解鎖資深工程師與 UX 設計師專為您編寫的逐步防災指引、工具備忘錄及 PWA 離線應變守則。
+                </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4.5">
+                  {Object.entries(SCENARIO_DATA).map(([key, item]) => {
+                    const expanded = activeScenarioCard === key;
+                    return (
+                      <div
+                        key={key}
+                        onClick={() => setActiveScenarioCard(expanded ? null : key)}
+                        className={`group bg-[#FAF9F6] dark:bg-stone-950 border rounded-2xl p-5 shadow-sm hover:shadow-md cursor-pointer text-left select-none transition-all duration-300 ${
+                          expanded 
+                            ? 'border-slate-600 ring-2 ring-slate-100 dark:ring-stone-800/40' 
+                            : 'border-stone-200 dark:border-stone-800 hover:border-slate-400 dark:hover:border-stone-700 hover:scale-[1.02]'
+                        }`}
+                      >
+                        <div className="w-10 h-10 rounded-xl bg-white dark:bg-stone-900 border border-stone-250 dark:border-stone-800 flex items-center justify-center text-lg shadow-xs group-hover:scale-105 duration-200 transition-transform shrink-0 mb-3">
+                          {item.icon}
+                        </div>
+                        <h4 className="text-sm font-extrabold text-stone-900 dark:text-white group-hover:text-slate-800 dark:group-hover:text-orange-400 transition-colors">
+                          {item.title}
+                        </h4>
+                        <p className="text-[11px] text-stone-450 dark:text-stone-500 font-extrabold uppercase mt-1">
+                          {item.category}
+                        </p>
+                        <p className="text-xs text-stone-600 dark:text-stone-400 font-semibold mt-3 leading-relaxed flex-1">
+                          {item.shortDesc}
+                        </p>
+                        <div className="mt-4 border-t border-stone-200/50 dark:border-stone-800/50 pt-2 text-right">
+                          <span className="text-[11px] text-slate-500 font-bold group-hover:underline flex items-center justify-end gap-1">
+                            <span>{expanded ? '▲ 收合自救手冊' : '▼ 點擊解鎖精細指南'}</span>
+                            <ArrowRight className="w-3 h-3" />
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Sub-Card expandable content drawer */}
+                {activeScenarioCard && (() => {
+                  const data = SCENARIO_DATA[activeScenarioCard];
+                  return (
+                    <div className="mt-6 bg-[#FAF9F6] dark:bg-stone-950 border border-slate-200 dark:border-stone-850 rounded-2xl p-5 md:p-6 text-left animate-in slide-in-from-top-3 duration-300">
+                      <div className="flex items-center justify-between border-b border-stone-200 dark:border-stone-800 pb-3 mb-4.5">
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg">{data.icon}</span>
+                          <h4 className="text-sm md:text-base font-extrabold text-stone-900 dark:text-white">
+                            {data.title} 綜合作戰指引手冊
+                          </h4>
+                        </div>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setActiveScenarioCard(null); }}
+                          className="text-stone-450 hover:text-stone-700 dark:hover:text-stone-200 p-1 min-h-[44px]"
+                        >
+                          收起 ✕
+                        </button>
+                      </div>
+
+                      <div className="text-xs bg-emerald-500/10 dark:bg-emerald-900/10 border border-emerald-500/20 text-emerald-800 dark:text-emerald-400 p-4 rounded-xl flex gap-3 mb-5">
+                        <Sparkles className="w-5 h-5 shrink-0 mt-0.5" />
+                        <p className="leading-relaxed font-semibold">
+                          <strong>PWA 離線防護說明：</strong>{data.pwaReadyText}
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {data.guidelines.map((section, sidx) => (
+                          <div key={sidx} className="space-y-4">
+                            <h5 className="text-xs font-extrabold text-slate-800 dark:text-orange-400 tracking-wider uppercase border-l-2 border-slate-600 dark:border-orange-500 pl-2">
+                              {section.sectionTitle}
+                            </h5>
+                            <div className="space-y-3">
+                              {section.items.map((item, iidx) => (
+                                <div key={iidx} className="bg-white dark:bg-stone-900 border border-stone-200/80 dark:border-stone-800 p-3.5 rounded-xl flex flex-col gap-1">
+                                  <span className="text-xs sm:text-sm font-extrabold text-stone-850 dark:text-white">
+                                    {section.items.length > 2 ? `${iidx + 1}. ` : ''}{item.title}
+                                  </span>
+                                  <span className="text-xs text-stone-650 dark:text-stone-400 leading-relaxed font-semibold">
+                                    {item.desc}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
+
+              </div>
+
+              {/* Complete AI Advanced Configuration block with new submit button */}
+              <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-850 rounded-3xl p-6 shadow-sm">
+                <div 
+                  onClick={() => setIsAiOpen(!isAiOpen)}
+                  className="flex items-center justify-between cursor-pointer select-none group min-h-[44px]"
+                >
+                  <h3 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2 uppercase tracking-wide">
+                     <Key className="w-4.5 h-4.5 text-slate-700 dark:text-orange-500" />
+                     進階 AI 設定（選填金鑰）
+                  </h3>
+                  <div className={`w-7 h-7 flex items-center justify-center rounded-full bg-stone-100 dark:bg-stone-810 group-hover:bg-stone-200 dark:group-hover:bg-stone-800 transition-transform duration-250 ${isAiOpen ? 'rotate-180' : 'rotate-0'}`}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-stone-500"><path d="m6 9 6 6 6-6"/></svg>
+                  </div>
+                </div>
+
+                <div 
+                  className="transition-[max-height] duration-300 ease-in-out overflow-hidden"
+                  style={{ maxHeight: isAiOpen ? '600px' : '0px' }}
+                >
+                  <div className="flex flex-col gap-3.5 pt-4 border-t border-stone-100 dark:border-stone-800 mt-3">
+                    <p className="text-sm text-stone-600 dark:text-stone-400 leading-relaxed font-semibold">
+                      在這裡填入您的個人 <strong className="text-slate-800 dark:text-white pr-0.5">Gemini API Key</strong> 即可啟用由 Google Gemini 2.5 Flash 驅動的高精密度避難診斷，針對您填載的家屬特殊需求、地理特點，一秒揪出安全漏洞：
                     </p>
                     
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <div className="relative flex-1">
+                        <input
+                          type={showApiKey ? "text" : "password"}
+                          value={customApiKey}
+                          onChange={(e) => handleSaveApiKey(e.target.value)}
+                          placeholder="請在此貼上您的 Gemini API Key (以 AI_ 開頭)"
+                          className="w-full bg-stone-50 dark:bg-stone-950 hover:bg-stone-100/50 dark:hover:bg-stone-900 focus:bg-white border border-stone-200 dark:border-stone-800 text-stone-900 dark:text-white rounded-xl pl-3 pr-10 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-slate-500 font-mono placeholder:text-stone-450 min-h-[48px]"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowApiKey(!showApiKey)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 p-1 min-h-[44px]"
+                        >
+                          {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+
+                      {/* Prominent High-Contrast Key submission button */}
+                      <button
+                        type="button"
+                        onClick={handleApiKeySubmit}
+                        className="bg-slate-800 hover:bg-slate-900 dark:bg-orange-600 dark:hover:bg-orange-700 text-white font-extrabold text-xs px-5 py-3 rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer min-h-[48px]"
+                      >
+                        <Check className="w-4 h-4" strokeWidth={3} />
+                        <span>送出/儲存金鑰</span>
+                      </button>
+                    </div>
+
+                    <p className="text-xs text-stone-500 dark:text-stone-400 font-bold leading-normal">
+                      💡 無論填寫與否，皆可使用完整的互動清單及離線功能。
+                    </p>
+
                     <div className="flex items-center justify-between mt-1 px-1">
                       <div className="flex items-center gap-1.5">
-                        <div className={`w-1.5 h-1.5 rounded-full ${customApiKey ? "bg-emerald-500 animate-pulse" : "bg-stone-400"}`} />
-                        <span className="text-[10px] font-extrabold text-stone-500 tracking-wider">
-                          {customApiKey ? "個人金鑰運作中" : "尚未填寫 API 金鑰（AI 功能暫停）"}
+                        <div className={`w-2 h-2 rounded-full ${customApiKey ? "bg-emerald-500 animate-pulse" : "bg-stone-400"}`} />
+                        <span className="text-xs font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider">
+                          {customApiKey ? "已啟用個人專屬 AI 分析診斷" : "尚未填用金鑰 (將使用內建專家知識範本)"}
                         </span>
                       </div>
                       {customApiKey && (
                         <button
-                          type="button"
-                          onClick={() => handleSaveApiKey("")}
-                          className="text-[11px] font-extrabold text-[#7f1d1d] hover:underline cursor-pointer min-h-[44px]"
+                          onClick={() => { handleSaveApiKey(""); alert("金鑰已清空。"); }}
+                          className="text-xs font-extrabold text-red-650 hover:underline cursor-pointer min-h-[44px]"
                         >
-                          清空金鑰
+                          清除重置
                         </button>
                       )}
                     </div>
@@ -955,979 +1069,432 @@ ${missingList || '所有物資皆已備妥！'}
                 </div>
               </div>
 
-              {/* Environment */}
-              <div className="bg-white rounded-2xl border border-stone-200/80 p-5 shadow-[0_2px_8px_-3px_rgba(0,0,0,0.02)] transition-all hover:border-stone-300 hover:shadow-[0_4px_12px_-3px_rgba(0,0,0,0.04)] md:min-w-[320px] md:w-[320px] md:shrink-0 md:snap-center lg:min-w-0 lg:w-auto lg:shrink lg:snap-align-none overflow-hidden">
-                <div 
-                  className="flex items-center justify-between cursor-pointer select-none group min-h-[44px]"
-                  onClick={() => setIsEnvOpen(!isEnvOpen)}
-                >
-                  <h3 className="text-xs font-extrabold text-stone-700 flex items-center gap-2 tracking-wide uppercase">
-                    <Home className="w-4 h-4 text-[#7f1d1d]" />
-                    居住環境特點描述
+            </div>
+          ) : (
+            /* ==================== 2. CRISIS-RESPONSE EMERGENCY NOW AREA ==================== */
+            <div className="flex flex-col gap-6 animate-in fade-in duration-300">
+              
+              {/* Emergency self-rescue warning board */}
+              <div className="bg-gradient-to-br from-red-600 to-orange-600 rounded-3xl p-6 md:p-8 text-white text-left relative overflow-hidden shadow-lg border border-red-500">
+                <div className="absolute right-0 top-0 w-48 h-48 bg-white/10 rounded-full blur-3xl pointer-events-none" />
+                <div className="relative z-10">
+                  <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/20 pb-4 mb-4">
+                    <span className="text-[11px] bg-yellow-400 text-stone-900 font-black px-3 py-1 rounded-full uppercase tracking-widest leading-none">
+                      ⚠️ 臨災極速核對秒抗自救命令
+                    </span>
+                    <span className="text-xs font-mono font-bold text-red-100 flex items-center gap-1">
+                      <Clock className="w-3.5 h-3.5" /> 當前即時防護基準
+                    </span>
+                  </div>
+
+                  <h3 className="text-xl sm:text-2xl font-black tracking-tight leading-snug">
+                    別慌！點擊下方您正遭遇的災殃
                   </h3>
-                  <div className="flex items-center gap-2">
-                    {isAnalyzingEnv && <Loader2 className="w-3.5 h-3.5 animate-spin text-[#7f1d1d] shrink-0" />}
-                    <div className={`w-6 h-6 flex items-center justify-center rounded-full bg-stone-50 group-hover:bg-stone-100 transition-transform duration-250 ${isEnvOpen ? 'rotate-180' : 'rotate-0'}`}>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-stone-500"><path d="m6 9 6 6 6-6"/></svg>
+                  <p className="text-xs text-red-100 mt-1.5 mb-5 font-semibold">
+                    此看板備妥了最精鍊、高對比、大字體的逐步救命命令。即使已無基地台與網路連線，也可隨時跟進落實。
+                  </p>
+
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                    {[
+                      { key: 'earthquake', emoji: '🌋', title: '強烈地震' },
+                      { key: 'flooding', emoji: '🌊', title: '淹水暴溢' },
+                      { key: 'typhoon', emoji: '🌀', title: '超強颱風' },
+                      { key: 'landslide', emoji: '🏔️', title: '土石流崩山' },
+                      { key: 'fire', emoji: '🔥', title: '室內火災' }
+                    ].map((guide) => (
+                      <button
+                        key={guide.key}
+                        onClick={() => setActiveEmergencyGuide(guide.key as any)}
+                        className="bg-white/10 hover:bg-white/20 active:scale-95 border border-white/20 hover:border-white/40 text-white rounded-xl p-3 flex flex-col items-center justify-center gap-1.5 transition-all text-center font-bold cursor-pointer min-h-[64px]"
+                      >
+                        <span className="text-xl shrink-0">{guide.emoji}</span>
+                        <span className="text-[11px] tracking-wide whitespace-nowrap">{guide.title} →</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Dynamic Disaster Alerts and live meteorological metrics */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                {/* Meteorological watch block */}
+                <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-850 rounded-3xl p-6 shadow-sm flex flex-col justify-between">
+                  <div>
+                    <h3 className="text-sm font-extrabold text-stone-700 dark:text-stone-300 flex items-center justify-between tracking-wider mb-4">
+                      <span className="flex items-center gap-1.5 uppercase font-sans">
+                        <Activity className="w-4 h-4 text-orange-500 animate-pulse" />
+                        災防局即時監控數據
+                      </span>
+                      <span className="text-[10px] font-bold text-stone-405 font-mono">
+                        更新：{liveWeather?.updatedAt || '--:--'}
+                      </span>
+                    </h3>
+
+                    <div className="grid grid-cols-2 gap-3 mb-4">
+                      <div className="bg-stone-50 dark:bg-stone-950 border border-stone-150 dark:border-stone-850 rounded-xl p-3 text-left">
+                        <span className="text-[10px] text-stone-450 dark:text-stone-400 font-bold block uppercase tracking-wider">今日累積降水量</span>
+                        <span className="text-lg font-extrabold text-stone-900 dark:text-white block mt-0.5">
+                          {activeScenario === 'rain' ? '380 mm' : activeScenario === 'typhoon' ? '290 mm' : '15 mm'}
+                        </span>
+                        <span className="text-[9px] text-[#ea580c] dark:text-orange-400 font-bold block mt-0.5">
+                          {activeScenario === 'rain' ? '📍嘉義山區紅色警戒' : activeScenario === 'typhoon' ? '📍宜蘭降水注意' : '水位正常'}
+                        </span>
+                      </div>
+
+                      <div className="bg-stone-50 dark:bg-stone-950 border border-stone-150 dark:border-stone-850 rounded-xl p-3 text-left">
+                        <span className="text-[10px] text-stone-450 dark:text-stone-400 font-bold block uppercase tracking-wider">瞬間風力評估</span>
+                        <span className="text-lg font-extrabold text-stone-900 dark:text-white block mt-0.5">
+                          {activeScenario === 'typhoon' ? '14 級強風' : '風力舒暖'}
+                        </span>
+                        <span className="text-[9px] text-[#ea580c] dark:text-orange-400 font-bold block mt-0.5">
+                          {activeScenario === 'typhoon' ? '📍東北角高強大風' : '正常對流風'}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-                
-                <div 
-                  className="transition-[max-height] duration-250 ease-in-out overflow-hidden"
-                  style={{ maxHeight: isEnvOpen ? '500px' : '0px' }}
-                >
-                  <div className="flex flex-col gap-2.5 pt-4 border-t border-stone-100 mt-3">
-                    <textarea
-                      value={environmentDesc}
-                      onChange={(e) => setEnvironmentDesc(e.target.value)}
-                      placeholder="點擊「地理分析」自主取得環境。此描述是 AI 計算排水、坡度落石風險的重要參考依據..."
-                      className="w-full bg-stone-50/50 hover:bg-stone-50 focus:bg-white border border-stone-200 rounded-lg px-3 py-2.5 text-stone-900 text-sm focus:outline-none focus:ring-1 focus:ring-stone-400 focus:border-stone-400 transition-all placeholder:text-stone-400 font-semibold resize-none h-28 max-w-full"
-                    />
-                    {!environmentDesc && (
-                      <div className="text-[11px] font-bold text-[#7f1d1d] flex items-center gap-1.5 bg-[#7f1d1d]/5 p-2 rounded border border-[#7f1d1d]/10">
-                        <Sparkles className="w-3.5 h-3.5 text-[#7f1d1d] shrink-0 animate-pulse" />
-                        <span>提示：若空置，分析時將依選址自動探測補齊</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
 
-              {/* Family */}
-              <div className="bg-white rounded-2xl border border-stone-200/80 p-5 shadow-[0_2px_8px_-3px_rgba(0,0,0,0.02)] transition-all hover:border-stone-300 hover:shadow-[0_4px_12px_-3px_rgba(0,0,0,0.04)] md:min-w-[320px] md:w-[320px] md:shrink-0 md:snap-center lg:min-w-0 lg:w-auto lg:shrink lg:snap-align-none overflow-hidden">
-                <div 
-                  className="flex items-center justify-between cursor-pointer select-none group min-h-[44px]"
-                  onClick={() => setIsFamilyOpen(!isFamilyOpen)}
-                >
-                  <h3 className="text-xs font-extrabold text-stone-700 flex items-center gap-2 tracking-wide uppercase">
-                    <HeartPulse className="w-4 h-4 text-[#7f1d1d]" />
-                    特殊關懷照顧對象 
-                    <span className="ml-1 text-[#7f1d1d] bg-rose-50 px-1.5 py-0.5 rounded text-[10px]">
-                      ({Object.values(familyProfile).filter(Boolean).length} 項)
-                    </span>
-                  </h3>
-                  <div className={`w-6 h-6 flex items-center justify-center rounded-full bg-stone-50 group-hover:bg-stone-100 transition-transform duration-250 ${isFamilyOpen ? 'rotate-180' : 'rotate-0'}`}>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-stone-500"><path d="m6 9 6 6 6-6"/></svg>
+                  <div className="bg-orange-500/10 border border-orange-500/20 p-3.5 rounded-xl flex items-start gap-2 text-left">
+                    <Bike className="w-4 h-4 text-orange-600 shrink-0 mt-0.5" />
+                    <p className="text-[11px] text-orange-850 dark:text-orange-300 font-bold leading-relaxed">
+                      <strong>停班課外送即刻關閉：</strong>當公告停止上班課，本區將即刻強制封閉機慢車外勤。外勤工作者請一律返回水泥掩體！
+                    </p>
                   </div>
                 </div>
 
-                <div 
-                  className="transition-[max-height] duration-250 ease-in-out overflow-hidden"
-                  style={{ maxHeight: isFamilyOpen ? '1000px' : '0px' }}
-                >
-                  <div className="flex flex-col gap-2 pt-4 border-t border-stone-100 mt-3">
-                    {[
-                      { key: 'hasToddler', label: '👶 嬰幼兒成員', desc: '需要保久奶粉、尿布與專屬物資' },
-                      { key: 'hasElderly', label: '👴 高齡長者家人', desc: '行動慢、須備足慢性處方藥與手電筒' },
-                      { key: 'hasChronicIllness', label: '💊 慢性病友成員', desc: '藥品防潮密封、依賴保冷或不斷電設備' },
-                      { key: 'hasMobilityIssues', label: '♿ 行動不便者', desc: '須提早進行垂直或水平避難撤離' },
-                      { key: 'hasDeliveryRider', label: '🛵 外送/外勤人員', desc: '強風雨道路出勤安全、停班強制防護' },
-                    ].map((item) => {
-                      const checked = familyProfile[item.key as keyof FamilyProfile];
-                      return (
-                        <label key={item.key} className={`cursor-pointer flex items-center gap-3 p-3 rounded-xl border transition-all duration-300 ${
-                          checked 
-                            ? 'bg-rose-50/40 border-[#7f1d1d]/40 shadow-[0_2px_8px_-3px_rgba(127,29,29,0.1)] translate-x-1' 
-                            : 'bg-white border-stone-200/80 hover:border-stone-300 hover:bg-stone-50/50'
-                        }`}>
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            onChange={() => handleProfileChange(item.key as keyof FamilyProfile)}
-                            className="hidden"
-                          />
-                          <div className={`w-4 h-4 rounded-md flex items-center justify-center shrink-0 border transition-all duration-200 ${
-                            checked ? 'bg-[#7f1d1d] border-[#7f1d1d] text-white scale-105 shadow-xs' : 'bg-white border-stone-300'
-                          }`}>
-                            {checked && <Check className="w-3 h-3 text-white" strokeWidth={3.5} />}
-                          </div>
-                          <div className="flex flex-col select-none">
-                            <span className={`text-[15px] font-bold transition-colors ${checked ? 'text-[#7f1d1d]' : 'text-stone-750'}`}>{item.label}</span>
-                            <span className="text-[13px] text-stone-500 mt-0.5 leading-snug font-semibold">{item.desc}</span>
-                          </div>
-                        </label>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
+                {/* Hot dial telephones list with touch sizes */}
+                <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-850 rounded-3xl p-6 shadow-sm flex flex-col justify-between">
+                  <div>
+                    <h3 className="text-sm font-extrabold text-stone-700 dark:text-stone-300 flex items-center gap-1.5 uppercase mb-2">
+                      <Phone className="w-4 h-4 text-orange-500 animate-pulse" />
+                      緊急自救直撥通報卡
+                    </h3>
+                    <p className="text-xs text-stone-500 dark:text-stone-400 mb-4 leading-normal">
+                      網路中斷、通網崩潰但仍有電信基地台殘存信號時，請立即抓起手機直撥自救平安熱線：
+                    </p>
 
-              {/* 防災緊急聯絡與平安機制 */}
-              <div className="bg-white border border-stone-200/80 rounded-2xl p-5 shadow-[0_2px_8px_-3px_rgba(0,0,0,0.025)] space-y-4 shrink-0 md:min-w-[320px] md:w-[320px] md:snap-center lg:min-w-0 lg:w-auto lg:snap-align-none overflow-hidden">
-                <h3 className="text-xs font-extrabold text-stone-700 flex items-center gap-2 tracking-wide uppercase border-b border-stone-100 pb-2.5">
-                  <Phone className="w-4 h-4 text-[#7f1d1d]" />
-                  <span>全台緊急通報專線</span>
-                </h3>
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <a href="tel:119" className="bg-[#7f1d1d]/5 hover:bg-[#7f1d1d]/10 border border-[#7f1d1d]/20 hover:border-[#7f1d1d]/30 p-2.5 rounded-xl flex flex-col justify-between transition-colors cursor-pointer group min-h-[52px]">
-                    <span className="font-bold text-stone-500 text-[10px] tracking-wide">災情火警、急救</span>
-                    <span className="text-base font-extrabold text-[#7f1d1d] mt-1 group-hover:translate-x-0.5 transition-transform flex items-center gap-1">119 <span className="text-[10px] font-normal">📞</span></span>
-                  </a>
-                  <a href="tel:110" className="bg-[#7f1d1d]/5 hover:bg-[#7f1d1d]/10 border border-[#7f1d1d]/20 hover:border-[#7f1d1d]/30 p-2.5 rounded-xl flex flex-col justify-between transition-colors cursor-pointer group min-h-[52px]">
-                    <span className="font-bold text-stone-500 text-[10px] tracking-wide">警政治安報案</span>
-                    <span className="text-base font-extrabold text-[#7f1d1d] mt-1 group-hover:translate-x-0.5 transition-transform flex items-center gap-1">110 <span className="text-[10px] font-normal">📞</span></span>
-                  </a>
-                  <a href="tel:112" className="bg-stone-50 hover:bg-stone-100/80 border border-stone-200 p-2.5 rounded-xl flex flex-col justify-between transition-colors cursor-pointer group min-h-[52px]">
-                    <span className="font-bold text-stone-500 text-[10px] tracking-wide">無基地台卡求救</span>
-                    <span className="text-sm font-extrabold text-stone-800 mt-1 flex items-center gap-1">112 <span className="text-[10px] font-medium text-stone-400">緊急</span></span>
-                  </a>
-                  <a href="tel:1999" className="bg-stone-50 hover:bg-stone-100/80 border border-stone-200 p-2.5 rounded-xl flex flex-col justify-between transition-colors cursor-pointer group min-h-[52px]">
-                    <span className="font-bold text-stone-500 text-[10px] tracking-wide">地方政府專線</span>
-                    <span className="text-sm font-extrabold text-stone-800 mt-1">1999</span>
-                  </a>
-                </div>
-                
-                <div className="bg-stone-900 text-white rounded-xl p-4 text-xs space-y-2 border border-stone-950">
-                  <div className="flex items-center gap-1.5 text-rose-300">
-                    <div className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
-                    <span className="font-extrabold tracking-widest text-[#FFF]">1991 報平安專線</span>
+                    <div className="grid grid-cols-2 gap-2.5">
+                      <a
+                        href="tel:119"
+                        className="bg-red-500 hover:bg-red-600 text-white rounded-xl p-3 font-extrabold flex flex-col items-center justify-center cursor-pointer min-h-[52px]"
+                      >
+                        <span className="text-[10px] opacity-80 uppercase font-black">火警及緊急救護</span>
+                        <span className="text-xl font-mono">119 →</span>
+                      </a>
+                      <a
+                        href="tel:110"
+                        className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl p-3 font-extrabold flex flex-col items-center justify-center cursor-pointer min-h-[52px]"
+                      >
+                        <span className="text-[10px] opacity-80 uppercase font-black">治安緊急報案</span>
+                        <span className="text-xl font-mono">110 →</span>
+                      </a>
+                      <a
+                        href="tel:112"
+                        className="bg-orange-600 hover:bg-orange-700 text-white rounded-xl p-3 font-extrabold flex flex-col items-center justify-center cursor-pointer min-h-[52px] col-span-2"
+                      >
+                        <span className="text-[10px] opacity-80 uppercase font-black">完全無卡、無基地台緊急求救</span>
+                        <span className="text-base font-mono">通用行動求救專線 112 →</span>
+                      </a>
+                    </div>
                   </div>
-                  <p className="text-stone-300 leading-relaxed font-semibold">
-                    斷網時聽取留言互報平安。
+
+                  <p className="text-[11px] text-stone-450 dark:text-stone-400 mt-3 font-semibold text-center border-t border-stone-150 dark:border-stone-850 pt-2.5">
+                    💡 撥打緊急電話應簡潔說明：什麼人、在哪裡、發生什麼事。
                   </p>
                 </div>
-              </div>
-            </div>
 
-            {/* Pinned bottom action button */}
-            <div className="mt-auto px-5 pb-6 pt-4 bg-gradient-to-t from-stone-100 via-stone-100/90 to-transparent sticky bottom-0 z-20 md:p-0 md:bg-none md:static md:mt-4 shrink-0">
+              </div>
+
+            </div>
+          )}
+
+          {/* ==================== 3. ADAPTIVE ANALYZED RISK OUTCOMES AREA ==================== */}
+          {/* AI Trigger active execution panel */}
+          <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-850 rounded-3xl p-6 md:p-8 shadow-sm">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-5 border-b border-stone-150 dark:border-stone-800 pb-5 mb-5">
+              <div>
+                <h3 className="text-base md:text-lg font-black text-stone-900 dark:text-white flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-slate-705 dark:text-orange-500 animate-pulse" />
+                  客製化 AI 防災生活卡與安全盲區分析
+                </h3>
+                <p className="text-xs text-stone-500 dark:text-stone-400 mt-1 font-semibold leading-relaxed">
+                  系統將整合您的【目標地址地理大數據】、【家屬年齡及工作配置】以及【避難物資勾選進度】，生成您住宅的個人化避難手冊。
+                </p>
+              </div>
+              
               <button
-                onClick={(e) => {
-                  handleAnalyze();
-                  if (window.innerWidth < 768) {
-                    setIsMobileDrawerOpen(false);
-                  }
-                }}
-                disabled={isAnalyzing || !location}
-                className="w-full relative overflow-hidden group bg-[#7f1d1d] hover:bg-[#631414] text-white rounded-xl py-4 px-6 font-bold text-base transition-all active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-[0_4px_12px_rgba(127,29,29,0.15)] hover:shadow-[0_6px_16px_rgba(127,29,29,0.25)] cursor-pointer min-h-[52px]"
+                onClick={() => handleAnalyze()}
+                disabled={isAnalyzing || !location.trim()}
+                className="bg-slate-800 hover:bg-slate-900 dark:bg-orange-600 dark:hover:bg-orange-700 text-white font-extrabold text-sm px-6 py-3.5 rounded-xl transition-all shadow-md shrink-0 flex items-center justify-center gap-1.5 active:scale-95 disabled:opacity-40 cursor-pointer min-h-[48px]"
               >
-                <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
                 {isAnalyzing ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin text-white shrink-0" />
-                    <span className="tracking-widest">分析中...</span>
+                    <Loader2 className="w-4 h-4 animate-spin text-white" />
+                    <span>地文編算中...</span>
                   </>
                 ) : (
                   <>
-                    <Sparkles className="w-4 h-4 group-hover:rotate-12 transition-transform shrink-0" />
-                    <span className="tracking-widest">啟動生活防災與居住安全評估</span>
+                    <Sparkles className="w-4 h-4 animate-bounce text-white" />
+                    <span>即刻生成客製指南</span>
                   </>
                 )}
               </button>
             </div>
-          </div>
 
-{/* Right Main Area */}
-          <div className="lg:col-span-8 xl:col-span-9 flex flex-col gap-6 min-w-0 w-full">
-
-            {/* 🚨 臨災避險極速引導入口 */}
-            <div className="bg-stone-900 rounded-3xl border border-stone-950 shadow-md p-5 sm:p-6 flex flex-col gap-5 text-white">
-              <div className="flex items-center gap-3 border-b border-white/10 pb-3">
-                <div className="w-9 h-9 rounded-lg bg-red-600 flex items-center justify-center text-white shrink-0 animate-pulse">
-                  <ShieldAlert className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <h3 className="text-sm sm:text-base font-extrabold tracking-wider text-white">
-                    臨災黃金秒數極速避避入口（點擊開啟逐步自救求生指引）
-                  </h3>
-                  <p className="text-[11px] text-stone-300 font-semibold mt-0.5">
-                    遭遇突發暴雨、強震時請勿驚慌，點選下方卡片，立刻加載極簡、直覺、全離線支持的應急步驟
-                  </p>
-                </div>
+            {/* If analyzing is loading */}
+            {isAnalyzing && (
+              <div className="bg-stone-50 dark:bg-stone-950 border border-stone-200/80 dark:border-stone-850 min-h-[300px] flex flex-col items-center justify-center p-8 text-center rounded-2xl">
+                <Loader2 className="w-10 h-10 animate-spin text-slate-700 dark:text-orange-500 mb-4" />
+                <h4 className="text-sm font-extrabold text-stone-900 dark:text-white tracking-widest uppercase">
+                  正在探查住宅地理水文防禦臨界點...
+                </h4>
+                <p className="text-xs text-stone-450 dark:text-stone-400 mt-1.5 max-w-sm leading-relaxed font-semibold">
+                  正在讀取台灣坡地穩定係數、防土木強度、周遭河水回水位大數據，高精度避難分析即將就緒。
+                </p>
               </div>
+            )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setActiveEmergencyGuide('earthquake')}
-                  className="bg-gradient-to-br from-red-950/90 to-red-900 border border-red-800/40 hover:border-red-500 rounded-xl p-3.5 text-left transition-all duration-300 hover:scale-[1.01] active:scale-95 group cursor-pointer"
-                >
-                  <div className="text-xs sm:text-sm font-extrabold text-red-200 group-hover:text-white flex items-center justify-between">
-                    <span>🌋 有感強烈地震</span>
-                    <span className="text-[9px] bg-red-600 text-white font-bold px-1.5 py-0.2 rounded shrink-0">極速求生</span>
+            {/* Live custom AI guidance outcome is rendered below */}
+            {analysisResult && !isAnalyzing && (
+              <div className="space-y-6 animate-in fade-in duration-300">
+                
+                {/* Dynamic warning banners */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  
+                  {/* Suspension indicators */}
+                  <div className="bg-stone-50 dark:bg-stone-950 border border-stone-200 dark:border-stone-850 p-5 rounded-2xl flex items-center gap-4 text-left">
+                    <div className={`w-14 h-14 rounded-xl flex flex-col items-center justify-center font-extrabold shrink-0 border uppercase ${
+                      analysisResult.suspensionIndicator?.level === '高' 
+                        ? 'bg-red-650 text-white border-red-500 bg-red-900/30 text-red-300' 
+                        : analysisResult.suspensionIndicator?.level === '中'
+                        ? 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                        : 'bg-stone-100 text-stone-500 dark:bg-neutral-800'
+                    }`}>
+                      <span className="text-[9px] opacity-80 leading-none">挑戰</span>
+                      <span className="text-lg leading-none mt-1">{analysisResult.suspensionIndicator?.level || '低'}</span>
+                    </div>
+                    <div className="flex-1">
+                      <span className="text-[10px] font-extrabold tracking-widest text-[#ea580c] uppercase block mb-0.5">預判停班停課指標</span>
+                      <span className="text-sm font-extrabold text-stone-900 dark:text-white">
+                        評估挑戰度「{analysisResult.suspensionIndicator?.level}」
+                      </span>
+                      <p className="text-xs text-stone-500 dark:text-stone-400 mt-1 leading-relaxed font-semibold">
+                        {analysisResult.suspensionIndicator?.reasons?.[0] || '鄰近區域排水或地能良好，暫無暴洪淹溢特報威威。'}
+                      </p>
+                    </div>
                   </div>
-                  <p className="text-[10px] text-stone-300 font-semibold mt-1.5 leading-relaxed">
-                    趴下護頭、防範位移置物櫃、開門防變形、著鞋撤離
-                  </p>
-                </button>
 
-                <button
-                  type="button"
-                  onClick={() => setActiveEmergencyGuide('flooding')}
-                  className="bg-gradient-to-br from-blue-950/90 to-blue-900 border border-blue-800/40 hover:border-blue-500 rounded-xl p-3.5 text-left transition-all duration-300 hover:scale-[1.01] active:scale-95 group cursor-pointer"
-                >
-                  <div className="text-xs sm:text-sm font-extrabold text-blue-200 group-hover:text-white flex items-center justify-between">
-                    <span>🌊 房屋積水淹水</span>
-                    <span className="text-[9px] bg-blue-600 text-white font-bold px-1.5 py-0.2 rounded shrink-0">切源垂直</span>
-                  </div>
-                  <p className="text-[10px] text-stone-300 font-semibold mt-1.5 leading-relaxed">
-                    切斷一樓總配電箱、藥物包垂直逃生、絕不涉足泥流
-                  </p>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setActiveEmergencyGuide('typhoon')}
-                  className="bg-gradient-to-br from-emerald-950/90 to-emerald-900 border border-emerald-800/40 hover:border-emerald-500 rounded-xl p-3.5 text-left transition-all duration-300 hover:scale-[1.01] active:scale-95 group cursor-pointer"
-                >
-                  <div className="text-xs sm:text-sm font-extrabold text-emerald-200 group-hover:text-white flex items-center justify-between">
-                    <span>🌀 強風吹碎玻璃</span>
-                    <span className="text-[9px] bg-emerald-600 text-white font-bold px-1.5 py-0.2 rounded shrink-0">掩體避風</span>
-                  </div>
-                  <p className="text-[10px] text-stone-300 font-semibold mt-1.5 leading-relaxed">
-                    避開迎風落地窗、反鎖各扇房門、宣佈停課暫停外勤
-                  </p>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setActiveEmergencyGuide('landslide')}
-                  className="bg-gradient-to-br from-amber-950/90 to-amber-900 border border-amber-800/40 hover:border-amber-500 rounded-xl p-3.5 text-left transition-all duration-300 hover:scale-[1.01] active:scale-95 group cursor-pointer"
-                >
-                  <div className="text-xs sm:text-sm font-extrabold text-[#fef3c7] group-hover:text-white flex items-center justify-between">
-                    <span>🏔️ 土石流撤離警報</span>
-                    <span className="text-[9px] bg-amber-600 text-white font-bold px-1.5 py-0.2 rounded shrink-0">直角高逃</span>
-                  </div>
-                  <p className="text-[10px] text-stone-300 font-semibold mt-1.5 leading-relaxed">
-                    白天預警隨車提早撤離、垂直泥流方向跑、常備重藥
-                  </p>
-                </button>
-              </div>
-            </div>
-            
-            {/* Real-time National Disaster & Weather Warnings Dashboard */}
-            <div id="disaster-intel-panel" className="bg-white rounded-3xl border border-stone-200/85 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.03)] p-6 sm:p-7 flex flex-col gap-6 transition-all hover:shadow-[0_6px_24px_-4px_rgba(0,0,0,0.05)]">
-              <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 border-b border-stone-105 pb-5">
-                <div className="flex items-center gap-3.5">
-                  <div className="bg-red-50 p-2.5 rounded-xl border border-red-100 text-red-700">
-                    <AlertTriangle className="w-5.5 h-5.5 animate-pulse" />
-                  </div>
-                  <div>
-                    <h2 className="text-base font-bold text-stone-900 flex items-center gap-2 font-display">
-                      <span>全台即時災害與停班停課特報中心</span>
-                      <span className="text-[10px] bg-red-600 text-white font-extrabold px-2 py-0.5 rounded-full tracking-widest uppercase animate-pulse">Live</span>
-                    </h2>
-                    <p className="text-xs font-semibold text-stone-500 mt-1">
-                      整合大氣天候、地震防風、停班停課特報，及 AI 居家風險安全守護指引
+                  {/* High contrast visual summary */}
+                  <div className="bg-slate-900 dark:bg-stone-950 border border-stone-800 p-5 rounded-2xl flex flex-col justify-center text-left">
+                    <span className="text-[10px] font-extrabold tracking-widest text-slate-300 dark:text-orange-400 uppercase block mb-1">
+                      🚨 居住風險核心摘要 RISK DIRECTIVE
+                    </span>
+                    <p className="text-xs sm:text-sm text-stone-200 dark:text-stone-305 font-bold leading-relaxed">
+                      {analysisResult.disasterRisk?.summary}
                     </p>
                   </div>
-                </div>
-                
-                {/* Active Weather Scenario Switcher */}
-                <div id="scenario-switcher" className="flex flex-wrap items-center gap-1 bg-stone-100 p-1.5 rounded-xl border border-stone-200 self-start xl:self-center">
-                  <button
-                    type="button"
-                    onClick={() => handleSelectScenario('normal')}
-                    className={`px-3 py-2 rounded-lg text-xs font-extrabold transition-all duration-250 flex items-center gap-1.5 cursor-pointer hover:scale-[1.02] ${
-                      activeScenario === 'normal' 
-                        ? 'bg-white text-stone-900 shadow-sm border border-stone-200' 
-                        : 'text-stone-500 hover:text-stone-850 hover:bg-stone-50'
-                    }`}
-                  >
-                    <Sun className="w-3.5 h-3.5 text-amber-500" />
-                    <span>晴朗平靜</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleSelectScenario('typhoon')}
-                    className={`px-3 py-2 rounded-lg text-xs font-extrabold transition-all duration-250 flex items-center gap-1.5 cursor-pointer hover:scale-[1.02] ${
-                      activeScenario === 'typhoon' 
-                        ? 'bg-[#7f1d1d] text-white shadow-sm border border-[#7f1d1d]' 
-                        : 'text-stone-500 hover:text-[#7f1d1d] hover:bg-[#7f1d1d]/5'
-                    }`}
-                  >
-                    <CloudLightning className="w-3.5 h-3.5 text-blue-400" />
-                    <span>強颱警報</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleSelectScenario('rain')}
-                    className={`px-3 py-2 rounded-lg text-xs font-extrabold transition-all duration-250 flex items-center gap-1.5 cursor-pointer hover:scale-[1.02] ${
-                      activeScenario === 'rain' 
-                        ? 'bg-[#d97706] text-white shadow-sm border border-amber-600' 
-                        : 'text-stone-500 hover:text-amber-600 hover:bg-amber-50'
-                    }`}
-                  >
-                    <CloudRainWind className="w-3.5 h-3.5 text-blue-400" />
-                    <span>大豪雨特報</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleSelectScenario('earthquake')}
-                    className={`px-3 py-2 rounded-lg text-xs font-extrabold transition-all duration-250 flex items-center gap-1.5 cursor-pointer hover:scale-[1.02] ${
-                      activeScenario === 'earthquake' 
-                        ? 'bg-red-700 text-white shadow-sm border border-red-700' 
-                        : 'text-stone-500 hover:text-red-700 hover:bg-red-50'
-                    }`}
-                  >
-                    <Activity className="w-3.5 h-3.5 text-red-400" />
-                    <span>有感震報</span>
-                  </button>
-                </div>
-              </div>
 
-              {/* Active Scenario Banner */}
-              <div id="active-scenario-banner" className={`p-4.5 rounded-2xl border flex flex-col sm:flex-row sm:items-center gap-4 transition-all duration-300 ${
-                activeScenario === 'normal' ? 'bg-emerald-50/50 border-emerald-200/70' :
-                activeScenario === 'typhoon' ? 'bg-[#7f1d1d]/5 border-[#7f1d1d]/20' :
-                activeScenario === 'rain' ? 'bg-amber-50/50 border-amber-200' :
-                'bg-red-50 border-red-200'
-              }`}>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border tracking-wider uppercase ${
-                      activeScenario === 'normal' ? 'bg-emerald-100 text-emerald-800 border-emerald-350/60' :
-                      activeScenario === 'typhoon' ? 'bg-red-805 bg-red-800 text-white border-red-800' :
-                      activeScenario === 'rain' ? 'bg-amber-600 text-white border-amber-600' :
-                      'bg-red-700 text-white border-red-700'
-                    }`}>
-                      {activeScenario === 'normal' ? '安全等級：常規綠色穩定' :
-                       activeScenario === 'typhoon' ? '發佈：海上陸上強颱特報 (強烈颱風・康芮)' :
-                       activeScenario === 'rain' ? '發佈：大豪雨特報與土石流紅色警戒' :
-                       '發佈：花蓮近海規模 6.2 地震＆極密餘震特報'}
-                    </span>
-                  </div>
-                  <p className="text-xs sm:text-[13px] font-semibold text-stone-900 leading-relaxed">
-                    {activeScenario === 'normal' && "🟢 目前全台大氣穩定。此段期間為「無痛防災窗口期」——建議配合守護系統盤點家庭避難物資，事先整備（如慢性處方藥、備用電池及乾糧瓶裝水）。"}
-                    {activeScenario === 'typhoon' && "🔴 暴風圈已鎖定並進入東部陸地，迎風面基隆、雙北、宜花東防超大暴雨與 13 級猛烈陣風。宣佈停班課自治區域，外送平台餐飲依法全面暫停配送以維護出勤安全。"}
-                    {activeScenario === 'rain' && "🟡 強對流梅雨系統滯留，高位山區與公路土石飽和。阿里山山崩紅色警戒就緒，蘇花路廊已啟動預警性封閉，平地低窪水溝應防倒灌。"}
-                    {activeScenario === 'earthquake' && "🔴 震央最大震度花蓮市 5 強，大台北 4 級！未來 72 小時為高頻餘震最活躍期，地層脆弱，嚴禁進入蘇花、中橫公路等高風險山區。"}
-                  </p>
-                </div>
-              </div>
-
-              {/* Real-time Work & Class Suspension Status Board */}
-              <div id="suspension-status-board" className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-1">
-                
-                {/* Left Column: Suspension Query Map Panel */}
-                <div className="border border-stone-200 rounded-xl p-4 flex flex-col gap-3 bg-[#faf9f6]/40">
-                  <h3 className="text-xs font-bold text-stone-700 flex flex-col sm:flex-row sm:items-center justify-between tracking-wider gap-2">
-                    <span className="flex items-center gap-1.5 flex-wrap">
-                      <Calendar className="w-3.5 h-3.5 text-[#7f1d1d]" />
-                      分區即時停班停課查詢看板
-                      {suspensionDataLocal?.isDemo && <span className="text-[10px] text-[#7f1d1d] font-bold">⚠ 示範資料，請以官方公告為準</span>}
-                    </span>
-                    <span className="text-[9px] font-bold text-stone-400 font-mono">
-                      資料來源：人事行政總處 ｜ 更新：{suspensionDataLocal?.updatedAt || '--:--'}
-                    </span>
-                  </h3>
-
-                  {/* Tabs Selector */}
-                  <div className="grid grid-cols-4 gap-1 p-0.5 bg-stone-100 rounded-lg border border-stone-200/50">
-                    {(['north', 'central', 'south', 'east'] as const).map((regId) => {
-                      const names = { north: '北部', central: '中部', south: '南部', east: '東部' };
-                      return (
-                        <button
-                          key={regId}
-                          type="button"
-                          onClick={() => setSelectedSuspensionRegion(regId)}
-                          className={`py-1 text-[10px] font-bold rounded-md transition-all duration-200 cursor-pointer ${
-                            selectedSuspensionRegion === regId
-                              ? 'bg-stone-900 text-white shadow-xs'
-                              : 'text-stone-500 hover:text-stone-850 hover:bg-stone-50'
-                          }`}
-                        >
-                          {names[regId]}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {suspensionDataLocal?.error ? (
-                    <div className="flex-1 flex flex-col items-center justify-center gap-3 min-h-[120px] text-xs font-bold text-stone-500 bg-stone-50/50 rounded-lg border border-dashed border-stone-200 p-4">
-                      <span>資料暫時無法取得，請參考官方公告</span>
-                      <a
-                        href="https://www.dgpa.gov.tw/typh/daily/nds.html"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-stone-300 rounded-lg text-[13px] text-stone-600 hover:text-stone-850 hover:bg-stone-50 transition-colors font-semibold shadow-2xs"
-                      >
-                        前往人事行政總處官網
-                      </a>
-                    </div>
-                  ) : (
-                    /* regional dynamic layout */
-                    <React.Fragment>
-                      {(() => {
-                        const data = getSuspensionStatus(selectedSuspensionRegion);
-                        return (
-                          <div className="flex-1 flex flex-col gap-3.5">
-                            <div className={`p-2.5 rounded-lg border text-center font-bold text-xs ${data.class}`}>
-                               {selectedSuspensionRegion === 'north' ? '北部地區：' :
-                                selectedSuspensionRegion === 'central' ? '中部地區：' :
-                                selectedSuspensionRegion === 'south' ? '南部地區：' :
-                                '東部及離島地區：'}{data.status}
-                            </div>
-                            
-                            <div className="bg-white rounded-lg border border-stone-150 p-3 space-y-2">
-                              <label className="text-[9px] tracking-widest font-extrabold text-stone-450 uppercase block">縣市通報明細</label>
-                              <div className="grid grid-cols-1 divide-y divide-stone-100">
-                                {data.counties.map((county, colIdx) => (
-                                  <div key={colIdx} className="py-2 flex items-center justify-between text-xs font-semibold text-stone-700">
-                                    <span className="tracking-wide">{county.split(' ')[0]}</span>
-                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
-                                       county.includes('🔴') ? 'bg-red-50 text-[#7f1d1d] border border-red-100' :
-                                       county.includes('🟡') ? 'bg-amber-50 text-amber-700 border border-amber-200' :
-                                       'bg-emerald-50 text-emerald-700 border border-emerald-100'
-                                    }`}>
-                                       {county.includes('🔴') ? '🔴 停班停課' : county.includes('🟡') ? '🟡 防風雨警戒' : '🟢 照常上班課'}
-                                    </span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })()}
-                    </React.Fragment>
-                  )}
                 </div>
 
-                {/* Right Column: Visual map simulation / key metrics panels */}
-                <div className="border border-stone-200 rounded-xl p-4 flex flex-col justify-between gap-3 bg-white relative">
-                  <div className="space-y-3">
-                  <h3 className="text-xs font-bold text-stone-700 flex flex-col sm:flex-row sm:items-center justify-between tracking-wider gap-2">
-                    <span className="flex items-center gap-1.5 flex-wrap uppercase">
-                      <Activity className="w-3.5 h-3.5 text-[#7f1d1d]" />
-                      災防數據與即時監控面板
-                      {liveWeather?.isDemo && <span className="text-[10px] text-[#7f1d1d] font-bold normal-case">⚠ 示範資料，請以官方公告為準</span>}
-                    </span>
-                    <span className="text-[9px] font-bold text-stone-400 font-mono normal-case">
-                      資料來源：中央氣象署 ｜ 更新：{liveWeather?.updatedAt || '--:--'}
-                    </span>
-                  </h3>
+                {/* Sub components factors */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {analysisResult.disasterRisk?.factors?.map((factor, idx) => {
+                    const isHigh = factor.riskLevel.includes('🔴') || factor.riskLevel.includes('高');
+                    const isMed = factor.riskLevel.includes('🟡') || factor.riskLevel.includes('中') || factor.riskLevel.includes('注意');
+                    return (
+                      <div key={idx} className={`bg-stone-50 dark:bg-stone-950 border rounded-2xl p-4 flex flex-col justify-between gap-2.5 transition-all ${
+                        isHigh ? 'border-red-450 dark:border-red-900 bg-red-500/5' : isMed ? 'border-amber-300' : 'border-stone-200 dark:border-stone-850'
+                      }`}>
+                        <span className="text-xs font-black text-stone-900 dark:text-white block text-left">
+                          {factor.name}
+                        </span>
+                        <span className={`text-[11px] font-bold tracking-wide flex items-center gap-1 block text-left ${
+                          isHigh ? 'text-red-650' : 'text-stone-500'
+                        }`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${isHigh ? 'bg-red-600 animate-ping' : 'bg-stone-400'}`} />
+                          <span>{factor.riskLevel.replace(/🟢|🟡|🔴/g, '')}</span>
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Family custom care boxes */}
+                {(familyProfile.hasElderly || familyProfile.hasDeliveryRider || familyProfile.hasToddler) && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4.5">
                     
-                    {/* Visual metrics cards depending on scenarios */}
-                    <div className="grid grid-cols-2 gap-3 pt-1">
-                      <div className="bg-stone-50 border border-stone-150 rounded-lg p-2.5">
-                         <span className="text-[9px] text-stone-450 font-bold block uppercase tracking-wider">今日最高累積降水</span>
-                         <span className="text-sm font-extrabold text-stone-900 block mt-1 tracking-tight">
-                            {activeScenario === 'rain' ? '380mm' : activeScenario === 'typhoon' ? '290mm' : '15mm'}
-                         </span>
-                         <span className="text-[9px] text-stone-500 font-medium block mt-0.5">{activeScenario === 'rain' ? '📍嘉義山區' : activeScenario === 'typhoon' ? '📍宜蘭太平山' : '低平水穩'}</span>
-                      </div>
-                      
-                      <div className="bg-stone-50 border border-stone-155 rounded-lg p-2.5">
-                         <span className="text-[9px] text-stone-450 font-bold block uppercase tracking-wider">瞬間觀測陣風</span>
-                         <span className="text-sm font-extrabold text-stone-900 block mt-1 tracking-tight">
-                            {activeScenario === 'typhoon' ? '14 級強風' : activeScenario === 'rain' ? '6 級陣風' : '風速微弱'}
-                         </span>
-                         <span className="text-[9px] text-stone-500 font-medium block mt-0.5">{activeScenario === 'typhoon' ? '📍東北海岸' : '正常對流風'}</span>
-                      </div>
-
-                      <div className="bg-stone-50 border border-stone-155 rounded-lg p-2.5">
-                         <span className="text-[9px] text-stone-450 font-bold block uppercase tracking-wider">避難收容整備度</span>
-                         <span className="text-sm font-extrabold text-[#7f1d1d] block mt-1 tracking-tight">
-                            {activeScenario === 'normal' ? '待命' : '342 處開放'}
-                         </span>
-                         <span className="text-[9px] text-stone-500 font-medium block mt-0.5">預儲糧藥就緒</span>
-                      </div>
-
-                      <div className="bg-stone-50 border border-stone-155 rounded-lg p-2.5">
-                         <span className="text-[9px] text-stone-455 font-bold block uppercase tracking-wider">搶救應急編組</span>
-                         <span className="text-sm font-extrabold text-stone-900 block mt-1 tracking-tight">
-                            {activeScenario === 'normal' ? '例行防務' : '全天防汛一級'}
-                         </span>
-                         <span className="text-[9px] text-stone-500 font-medium block mt-0.5">工水消全面待命</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-[#FAF9F6] border border-stone-200 p-2 rounded-lg flex items-center gap-2">
-                     <div className="w-1.5 h-1.5 rounded-full bg-[#7f1d1d] animate-pulse shrink-0" />
-                     <p className="text-[10px] text-stone-600 font-semibold leading-relaxed font-sans">
-                        停班起強制關閉機慢車外送，安全高於一切，外勤人員請落實防風安全。
-                     </p>
-                  </div>
-                </div>
-
-              </div>
-
-            </div>
-
-            <div className="flex flex-col md:grid md:grid-cols-5 xl:grid-cols-3 gap-6">
-              
-              {/* Dashboard Content */}
-              <div className="md:col-span-3 xl:col-span-2 flex flex-col gap-6 order-1 md:order-none">
-                {!analysisResult && !isAnalyzing && (
-                  <div className="flex flex-col gap-6 animate-in fade-in duration-300">
-                    <div className="bg-white rounded-3xl border border-stone-200/80 p-6 md:p-8 shadow-[0_4px_24px_-6px_rgba(0,0,0,0.02)] relative overflow-hidden transition-all">
-                      <div className="absolute -right-12 -top-12 w-48 h-48 bg-stone-50 rounded-full blur-3xl pointer-events-none" />
-                      <div className="relative">
-                        <h2 className="text-xl md:text-2xl font-extrabold text-stone-900 tracking-tight leading-snug mb-1.5 text-balance">
-                          台灣家庭必備備災三原則
-                        </h2>
-                        <p className="text-[13px] text-stone-500 font-medium mb-4 leading-normal">
-                          目前顯示通用資訊，填入地址後可取得個人化建議
-                        </p>
-                        <p className="text-stone-600 text-sm font-semibold leading-relaxed max-w-2xl text-balance space-y-2">
-                          在災害發生前，做好準備是保護家人安全的最有效方法。請落實以下三大原則：<br/>
-                          <span className="block mt-2"><strong className="text-stone-800">1. 防災隨身包：</strong> 準備至少 72 小時的維生物資與必要慢性病藥物。</span>
-                          <span className="block"><strong className="text-stone-800">2. 逃生動線暢通：</strong> 定期清理家中玄關與陽台，避免堆放雜物，確保緊急撤離不被阻礙。</span>
-                          <span className="block"><strong className="text-stone-800">3. 約定避難點：</strong> 與家人約定好斷網時的屋外集合地點與聯絡人。</span>
+                    {familyProfile.hasElderly && (
+                      <div className="bg-amber-500/5 border border-amber-300/60 dark:border-amber-900/50 rounded-2xl p-5 text-left">
+                        <span className="text-base block mb-1">👴 長輩緊急防摔與用藥特殊哨兵</span>
+                        <p className="text-xs text-stone-600 dark:text-stone-400 leading-relaxed font-semibold">
+                          長輩移動遲緩、視力或關節在大雨寒冷侵襲下易受影響。請務必核查 7-14 天高血壓慢病處方藥，玄關大門處備用手電筒不可有雜物阻塞，演練「趴下掩護」掩體。
                         </p>
                       </div>
-                    </div>
+                    )}
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {/* Earthquake Card */}
-                      <div 
-                        onClick={() => setActiveEmergencyGuide('earthquake')}
-                        className="bg-gradient-to-br from-stone-50 to-white rounded-2xl p-6 border border-stone-200 shadow-sm flex flex-col gap-3 transition-all hover:border-stone-300 hover:shadow-md cursor-pointer group select-none"
-                      >
-                        <div className="w-10 h-10 rounded-xl bg-[rgba(234,88,12,0.08)] flex items-center justify-center mb-1 border border-[rgba(234,88,12,0.15)] shrink-0">
-                          <Activity className="w-5 h-5 text-[rgb(234,88,12)]" />
-                        </div>
-                        <h3 className="text-sm font-extrabold text-stone-900">強烈有感地震</h3>
-                        <p className="text-xs text-stone-500 font-bold leading-relaxed flex-1">
-                          確保【趴下、掩護、穩住】保護頭頸部，切勿在強烈搖晃時隨意奔跑，等待搖晃停歇後再關爐火與移動。
+                    {familyProfile.hasDeliveryRider && (
+                      <div className="bg-indigo-500/5 border border-indigo-300/60 dark:border-indigo-900/50 rounded-2xl p-5 text-left">
+                        <span className="text-base block mb-1">🛵 外送、外勤工作高風切安全盾</span>
+                        <p className="text-xs text-stone-600 dark:text-stone-400 leading-relaxed font-semibold">
+                          高密度 9 級以上強陣風或積水逾 20 公分（過輪胎一半）極易造成摔車與井蓋漂移割裂。宣告停班課即刻斷單，切務為了搶單強渡大風雨。
                         </p>
-                        <span className="text-[13px] text-stone-400 font-medium group-hover:text-stone-600 transition-colors self-end mt-1">查看詳情 →</span>
                       </div>
-                      
-                      {/* Typhoon Card */}
-                      <div 
-                        onClick={() => setActiveEmergencyGuide('typhoon')}
-                        className="bg-gradient-to-br from-stone-50 to-white rounded-2xl p-6 border border-stone-200 shadow-sm flex flex-col gap-3 transition-all hover:border-stone-300 hover:shadow-md cursor-pointer group select-none"
-                      >
-                        <div className="w-10 h-10 rounded-xl bg-[rgba(37,99,235,0.08)] flex items-center justify-center mb-1 border border-[rgba(37,99,235,0.15)] shrink-0">
-                          <CloudRainWind className="w-5 h-5 text-[rgb(37,99,235)]" />
-                        </div>
-                        <h3 className="text-sm font-extrabold text-stone-900">颱風與強陣風</h3>
-                        <p className="text-xs text-stone-500 font-bold leading-relaxed flex-1">
-                          將陽台盆栽移至室內，大面積玻璃貼上防爆膠帶，備妥手電筒與行動電源以防突發斷路與斷電。
-                        </p>
-                        <span className="text-[13px] text-stone-400 font-medium group-hover:text-stone-600 transition-colors self-end mt-1">查看詳情 →</span>
-                      </div>
-
-                      {/* Flooding Card */}
-                      <div 
-                        onClick={() => setActiveEmergencyGuide('flooding')}
-                        className="bg-gradient-to-br from-stone-50 to-white rounded-2xl p-6 border border-stone-200 shadow-sm flex flex-col gap-3 transition-all hover:border-stone-300 hover:shadow-md cursor-pointer group select-none"
-                      >
-                        <div className="w-10 h-10 rounded-xl bg-[rgba(109,40,217,0.08)] flex items-center justify-center mb-1 border border-[rgba(109,40,217,0.15)] shrink-0">
-                          <CloudLightning className="w-5 h-5 text-[rgb(109,40,217)]" />
-                        </div>
-                        <h3 className="text-sm font-extrabold text-stone-900">暴雨與積淹水</h3>
-                        <p className="text-xs text-stone-500 font-bold leading-relaxed flex-1">
-                          若遭遇水淹進屋內，一律切斷一樓總電源後迅速向二樓以上進行垂直避難，絕對不要涉水行走。
-                        </p>
-                        <span className="text-[13px] text-stone-400 font-medium group-hover:text-stone-600 transition-colors self-end mt-1">查看詳情 →</span>
-                      </div>
-
-                      {/* Fire Card */}
-                      <div 
-                        onClick={() => setActiveEmergencyGuide('fire')}
-                        className="bg-gradient-to-br from-stone-50 to-white rounded-2xl p-6 border border-stone-200 shadow-sm flex flex-col gap-3 transition-all hover:border-stone-300 hover:shadow-md cursor-pointer group select-none"
-                      >
-                        <div className="w-10 h-10 rounded-xl bg-[rgba(220,38,38,0.08)] flex items-center justify-center mb-1 border border-[rgba(220,38,38,0.15)] shrink-0">
-                          <Zap className="w-5 h-5 text-[rgb(220,38,38)]" />
-                        </div>
-                        <h3 className="text-sm font-extrabold text-stone-900">室內火災防範</h3>
-                        <p className="text-xs text-stone-500 font-bold leading-relaxed flex-1">
-                          遇濃煙應壓低身姿，若門把燙手勿開門，用濕毛巾塞住門縫並在窗邊呼救，等待 119 救援。
-                        </p>
-                        <span className="text-[13px] text-stone-400 font-medium group-hover:text-stone-600 transition-colors self-end mt-1">查看詳情 →</span>
-                      </div>
-                    </div>
-
-                    <div className="bg-[#1c1917] rounded-3xl p-6 md:p-8 border border-stone-900 text-white flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl mt-2 relative overflow-hidden">
-                       <div className="absolute top-0 right-0 w-32 h-32 bg-red-900/20 blur-3xl rounded-full pointer-events-none" />
-                       <div className="relative z-10 w-full md:w-auto text-center md:text-left">
-                         <h3 className="text-sm md:text-base font-extrabold text-stone-100 flex items-center justify-center md:justify-start gap-2 mb-2">
-                           <Phone className="w-4 h-4 text-stone-400" /> 緊急聯絡電話快速卡
-                         </h3>
-                         <p className="text-xs font-bold leading-relaxed text-stone-400">
-                           災難發生時保持冷靜，簡潔報出發生人、事、時、地、物。
-                         </p>
-                       </div>
-                       <div className="relative z-10 flex w-full md:w-auto items-center gap-3">
-                         <div className="bg-stone-800/80 rounded-xl px-4 py-3 text-center flex-1 border border-stone-700/50">
-                           <span className="block text-[10px] text-stone-400 font-extrabold tracking-widest mb-1">救災救護</span>
-                           <span className="block text-2xl font-mono font-bold text-red-400">119</span>
-                         </div>
-                         <div className="bg-stone-800/80 rounded-xl px-4 py-3 text-center flex-1 border border-stone-700/50">
-                           <span className="block text-[10px] text-stone-400 font-extrabold tracking-widest mb-1">治安報案</span>
-                           <span className="block text-2xl font-mono font-bold text-blue-400">110</span>
-                         </div>
-                         <div className="bg-stone-800/80 rounded-xl px-4 py-3 text-center flex-1 border border-stone-700/50">
-                           <span className="block text-[10px] text-stone-400 font-extrabold tracking-widest mb-1">無訊號求救</span>
-                           <span className="block text-2xl font-mono font-bold text-emerald-400">112</span>
-                         </div>
-                       </div>
-                    </div>
+                    )}
                   </div>
                 )}
 
-                {isAnalyzing && (
-                  <div className="bg-white rounded-[24px] border border-stone-200/80 min-h-[500px] flex flex-col items-center justify-center p-10 text-center shadow-[0_4px_24px_-6px_rgba(0,0,0,0.025)]">
-                    <div className="relative mb-6">
-                      <div className="w-16 h-16 bg-stone-50 flex items-center justify-center rounded-2xl border border-stone-200/85">
-                        <Sparkles className="w-6 h-6 text-[#7f1d1d] animate-pulse" />
-                      </div>
-                      <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-red-500"></span>
+                {/* Timeline display */}
+                {analysisResult.actionableTimeline && (
+                  <div className="border border-stone-200 dark:border-stone-850 rounded-2xl overflow-hidden bg-white dark:bg-stone-900 text-left">
+                    <div className="bg-stone-50 dark:bg-stone-950 border-b border-stone-200 dark:border-stone-850 px-5 py-3">
+                      <span className="text-xs font-black tracking-wider text-stone-700 dark:text-stone-300 uppercase flex items-center gap-1.5">
+                        <Clock className="w-4 h-4 text-slate-700 dark:text-orange-500" />
+                        AI 規劃：住宅防護逐步時間行動線
                       </span>
                     </div>
-                    <h3 className="text-base font-extrabold text-stone-900 mb-2 tracking-widest font-display">
-                      正在探測該點空間特性...
-                    </h3>
-                    <p className="text-stone-450 max-w-sm text-xs font-semibold animate-pulse leading-relaxed">
-                      正在梳理水文水力分佈、坡形坡降、斷層裂帶與歷史災害大數據，請稍後。
-                    </p>
-                  </div>
-                )}
-
-                {analysisResult && !isAnalyzing && (
-                  <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-2 duration-450 ease-out">
-                    
-                    {/* 狀態總覽 */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {/* 停班課風險 */}
-                      <div className="bg-white rounded-2xl border border-stone-200 p-6 flex items-center gap-5 shadow-sm hover:border-stone-300 transition-all">
-                        <div className={`w-16 h-16 rounded-xl flex flex-col items-center justify-center font-extrabold shrink-0 border relative overflow-hidden transition-all duration-300 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.1)]
-                          ${analysisResult.suspensionIndicator?.level === '高' ? 'bg-[#7f1d1d] text-white border-[#7f1d1d]' : 
-                          analysisResult.suspensionIndicator?.level === '中' ? 'bg-[#f4f1eb] text-stone-800 border-stone-300' : 
-                          'bg-stone-50 text-stone-500 border-stone-200'}`}>
-                          <span className="text-[10px] tracking-widest uppercase opacity-75 font-mono mb-0.5">LV</span>
-                          <span className="text-xl leading-none">{analysisResult.suspensionIndicator?.level || '低'}</span>
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="text-[10px] font-extrabold tracking-widest text-[#7f1d1d] uppercase mb-1">停班課預估指標</span>
-                          <span className="text-base font-extrabold text-[#7f1d1d] tracking-tight">
-                            評估為「{analysisResult.suspensionIndicator?.level || '低'}」度挑戰
-                          </span>
-                          <p className="text-xs text-stone-600 mt-1 font-semibold leading-relaxed">
-                            {analysisResult.suspensionIndicator?.reasons?.[0] || "目前所處地區條件尚算穩定，無明顯停班課預兆。"}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* 總體風險摘要 */}
-                      <div className="bg-[#1c1917] text-white rounded-2xl p-6 flex flex-col justify-center relative overflow-hidden border border-stone-900 shadow-md">
-                        <div className="absolute top-0 right-0 w-24 h-24 bg-[#7f1d1d]/15 rounded-full blur-2xl pointer-events-none" />
-                        <h4 className="text-[10px] font-extrabold text-stone-450 tracking-widest uppercase mb-2 flex items-center gap-1.5 border-b border-stone-800 pb-1.5">
-                           <div className="w-1.5 h-1.5 rounded-full bg-[#7f1d1d]" /> 當前居住風險描述 SUMMARY
+                    <div className="grid grid-cols-1 md:grid-cols-2 md:divide-x divide-stone-200 dark:divide-stone-850">
+                      
+                      {/* Immediate action */}
+                      <div className="p-5 space-y-3">
+                        <h4 className="text-xs uppercase font-extrabold tracking-widest text-[#ea580c] dark:text-orange-400 flex items-center gap-1">
+                          <span className="w-2 h-2 rounded-full bg-red-650 animate-ping shrink-0" />
+                          優先行動 (此時此刻立即備置)
                         </h4>
-                        <p className="text-stone-100 text-xs sm:text-sm leading-relaxed font-bold">
-                          {analysisResult.disasterRisk?.summary}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* 風險次級指標 */}
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                      {analysisResult.disasterRisk?.factors?.map((factor, idx) => {
-                        const isHigh = factor.riskLevel.includes('🔴') || factor.riskLevel.includes('高');
-                        const isMed = factor.riskLevel.includes('🟡') || factor.riskLevel.includes('中') || factor.riskLevel.includes('注意');
-                        return (
-                          <div key={idx} className={`bg-white rounded-2xl p-4 border flex flex-col justify-between gap-3 transition-all duration-350 hover:-translate-y-0.5 ${
-                             isHigh ? 'border-[#7f1d1d] bg-[#fdfcfb] shadow-[0_2px_12px_-5px_rgba(127,29,29,0.06)]' : isMed ? 'border-amber-300 bg-[#faf9f6]/40' : 'border-stone-200/80 bg-white'
-                          }`}>
-                            <div className="flex justify-between items-start">
-                               <span className="text-xs font-extrabold text-stone-800 tracking-wide">{factor.name}</span>
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                              <span className="relative flex h-1.5 w-1.5 shrink-0">
-                                {isHigh && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#7f1d1d] opacity-75" />}
-                                <span className={`relative inline-flex rounded-full h-1.5 w-1.5 ${isHigh ? 'bg-[#7f1d1d]' : isMed ? 'bg-amber-500' : 'bg-stone-400'}`} />
+                        <div className="pl-3.5 border-l border-stone-250 dark:border-stone-800 space-y-3.5 pt-1.5">
+                          {analysisResult.actionableTimeline.immediate?.map((action, i) => (
+                            <div key={i} className="text-xs text-stone-700 dark:text-stone-300 leading-relaxed font-semibold relative">
+                              <span className="absolute -left-[20.5px] top-0.5 w-[14px] h-[14px] rounded-full bg-slate-700 text-white text-[9px] font-black flex items-center justify-center">
+                                {i + 1}
                               </span>
-                              <span className={`text-[11px] font-extrabold uppercase ${isHigh ? 'text-[#7f1d1d]' : 'text-stone-600'}`}>
-                                {factor.riskLevel.replace(/🟢|🟡|🔴/g, '')}
-                              </span>
+                              <span>{action}</span>
                             </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {/* 專家即時行動指引 */}
-                    {analysisResult.actionableTimeline && (
-                      <div className="bg-white rounded-3xl border border-stone-200/85 flex flex-col overflow-hidden shadow-sm transition-all hover:border-stone-300">
-                        <div className="bg-stone-50/70 px-5 py-4 border-b border-stone-200/80 flex items-center justify-between">
-                          <h3 className="text-xs font-extrabold text-stone-800 flex items-center gap-2 uppercase tracking-wide">
-                            <Clock className="w-4.5 h-4.5 text-[#7f1d1d]" />
-                            防災行動時間指南 (TIMELINE)
-                          </h3>
-                        </div>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 md:divide-x divide-stone-200/80">
-                          {/* 優先整備行動 */}
-                          <div className="p-6 space-y-4">
-                            <h4 className="text-[#7f1d1d] text-[13px] font-extrabold tracking-widest uppercase mb-4 flex items-center gap-2.5">
-                              <span className="relative flex h-2 w-2 shrink-0">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#7f1d1d] opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-2 w-2 bg-[#7f1d1d]"></span>
-                              </span>
-                              優先整備行動 (此時此刻)
-                            </h4>
-                            <div className="relative border-l border-stone-200 pl-4.5 space-y-5 py-1">
-                              {analysisResult.actionableTimeline.immediate?.map((action, i) => (
-                                 <div key={i} className="relative text-xs leading-relaxed text-stone-700">
-                                   <div className="absolute -left-[27.5px] top-0.5 w-5 h-5 rounded-full bg-[#7f1d1d] text-white font-extrabold text-[10px] flex items-center justify-center shadow-xs">
-                                     {i+1}
-                                   </div>
-                                   <span className="font-semibold text-stone-850 leading-relaxed block pl-1">{action}</span>
-                                 </div>
-                              ))}
-                            </div>
-                          </div>
-                          
-                          {/* 持續跟進整備 */}
-                          <div className="p-6 space-y-4 bg-stone-50/10">
-                             <h4 className="text-stone-700 text-[13px] font-extrabold tracking-widest uppercase mb-4 flex items-center gap-2.5">
-                              <span className="w-2 h-2 rounded-full bg-stone-500 shrink-0" />
-                              持續跟進整備 (未來 24 小時)
-                            </h4>
-                            <div className="relative border-l border-stone-200 pl-4.5 space-y-5 py-1">
-                              {analysisResult.actionableTimeline.next24h?.map((action, i) => (
-                                 <div key={i} className="relative text-xs leading-relaxed text-stone-650">
-                                   <div className="absolute -left-[27.5px] top-0.5 w-5 h-5 rounded-full bg-stone-200 text-stone-700 font-extrabold text-[10px] flex items-center justify-center">
-                                     {i+1}
-                                   </div>
-                                   <span className="font-semibold text-stone-750 leading-relaxed block pl-1">{action}</span>
-                                 </div>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* 避難收容與安全方向規劃 */}
-                    {analysisResult.shelterGuidance && (
-                      <div className="bg-white rounded-3xl border border-stone-200/85 shadow-sm p-6 sm:p-7 space-y-5 transition-all hover:border-stone-300">
-                        <div className="border-b border-stone-150 pb-4 flex items-center gap-2.5">
-                          <div className="w-9 h-9 rounded-xl bg-[#7f1d1d]/10 flex items-center justify-center text-[#7f1d1d] border border-[#7f1d1d]/15">
-                            <MapPin className="w-5 h-5" />
-                          </div>
-                          <div>
-                            <h3 className="text-xs font-extrabold text-stone-800 uppercase tracking-widest leading-none">
-                              推薦避難收容處所與撤離指南
-                            </h3>
-                            <p className="text-[10px] text-stone-450 font-bold mt-1.5">基於鄰里特徵及防坡規章制定的安全方向</p>
-                          </div>
-                        </div>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          {/* 建議前往處所 */}
-                          <div className="space-y-4">
-                            <h4 className="text-xs font-extrabold text-stone-900 flex items-center gap-2 tracking-wide uppercase">
-                              <span className="w-1.5 h-1.5 rounded-full bg-[#7f1d1d]" />
-                              建議避難撤離地點
-                            </h4>
-                            <div className="space-y-3">
-                              {analysisResult.shelterGuidance.nearestOptions?.map((shelter, idx) => (
-                                <div key={idx} className="bg-stone-50 border border-stone-200 rounded-xl p-3.5 flex gap-3.5 text-xs text-stone-700 font-semibold transition-colors hover:bg-stone-100/60">
-                                  <span className="w-6 h-6 rounded-lg bg-white border border-stone-250 flex items-center justify-center text-xs font-extrabold text-[#7f1d1d] shrink-0 select-none shadow-xs">
-                                    {idx + 1}
-                                  </span>
-                                  <span className="leading-relaxed text-stone-800">{shelter}</span>
-                                </div>
-                              ))}
-                              {(!analysisResult.shelterGuidance.nearestOptions || analysisResult.shelterGuidance.nearestOptions.length === 0) && (
-                                <p className="text-xs text-stone-400 font-semibold italic">正在加載適合您的里民活動中心或運動場地規劃...</p>
-                              )}
-                            </div>
-                          </div>
-                          
-                          {/* 安全行進原則 */}
-                          <div className="space-y-4">
-                            <h4 className="text-xs font-extrabold text-stone-900 flex items-center gap-2 tracking-wide uppercase">
-                              <span className="w-1.5 h-1.5 rounded-full bg-stone-500" />
-                              安全行進與疏散原則
-                            </h4>
-                            <ul className="space-y-3">
-                              {analysisResult.shelterGuidance.safetyCriteria?.map((criteria, idx) => (
-                                <li key={idx} className="flex gap-2.5 items-start text-xs leading-relaxed font-semibold text-stone-650">
-                                  <div className="w-4 h-4 rounded-full bg-stone-100 flex items-center justify-center shrink-0 mt-0.5 border border-stone-200/50">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-[#7f1d1d]/85" />
-                                  </div>
-                                  <span className="leading-relaxed font-semibold text-stone-700">{criteria}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Advanced Specific Persona Protection Features */}
-                {(familyProfile.hasElderly || familyProfile.hasDeliveryRider) && (
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-in fade-in slide-in-from-bottom-3 duration-300">
-                    {/* Elderly Care Column */}
-                    {familyProfile.hasElderly && (
-                      <div className="bg-amber-50/75 border border-amber-300 rounded-xl p-5 flex flex-col gap-4 shadow-sm">
-                        <div className="flex items-center gap-2.5 border-b border-amber-200 pb-3">
-                          <div className="w-8 h-8 rounded-full bg-amber-600 flex items-center justify-center text-white text-sm font-bold shadow-xs">👴</div>
-                          <div>
-                            <h4 className="text-sm font-bold text-amber-900 tracking-wide">長輩避難防護特別護理指南</h4>
-                            <p className="text-[10px] text-amber-600 font-bold uppercase tracking-wider">Elderly High-Contrast Safety Shield</p>
-                          </div>
-                        </div>
-                        <div className="space-y-3 text-xs leading-relaxed text-amber-955 font-medium">
-                          <p className="font-bold border-l-2 border-amber-500 pl-2 text-amber-900 mb-1">
-                            行動速度慢、或慢性常備藥中斷，是災汛或強震時期高齡者面臨的最大危險：
-                          </p>
-                          <ul className="space-y-2">
-                            <li className="flex gap-2 items-start">
-                              <span className="text-amber-705 font-bold">✓</span>
-                              <span><strong>慢性病與處方藥儲備</strong>：檢查常用降血壓、血糖或心血管處方藥至少準備 7-14 天用量，置於透明防水袋隨身包中。</span>
-                            </li>
-                            <li className="flex gap-2 items-start">
-                              <span className="text-amber-705 font-bold">✓</span>
-                              <span><strong>低溫與氣溫劇變調節</strong>：颱風降溫、大雨潮濕極易誘發呼吸道或關節疼痛，請預備好厚外套、長輩乾棉襪置於手邊。</span>
-                            </li>
-                            <li className="flex gap-2 items-start">
-                              <span className="text-amber-705 font-bold">✓</span>
-                              <span><strong>居家防跌與不斷電照明</strong>：浴廁、床頭及客廳走道，加裝即插自亮應急燈或預備感應夜間磁吸手電筒以防斷電摔傷。</span>
-                            </li>
-                            <li className="flex gap-2 items-start">
-                              <span className="text-amber-705 font-bold">✓</span>
-                              <span><strong>無障礙逃生通道保通</strong>：提前移開玄關、客廳主動線的矮凳、雜物，風雨來臨前反覆跟長輩演練避震「趴下掩護」掩體。</span>
-                            </li>
-                          </ul>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Delivery & Field Worker Column */}
-                    {familyProfile.hasDeliveryRider && (
-                      <div className="bg-blue-50/75 border border-blue-300 rounded-xl p-5 flex flex-col gap-4 shadow-sm">
-                        <div className="flex items-center gap-2.5 border-b border-blue-200 pb-3">
-                          <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-bold shadow-xs">🛵</div>
-                          <div>
-                            <h4 className="text-sm font-bold text-blue-905 tracking-wide">外勤與外送夥伴騎行交通哨兵欄</h4>
-                            <p className="text-[10px] text-blue-600 font-bold uppercase tracking-wider">Delivery Rider Traffic Guardian</p>
-                          </div>
-                        </div>
-                        <div className="space-y-3 text-xs leading-relaxed text-blue-955 font-semibold">
-                          <p className="font-bold border-l-2 border-blue-500 pl-2 text-blue-900 mb-1">
-                            機慢車在強風豪雨、積水或強震餘震後，其行車與失控摔車風險翻升數倍：
-                          </p>
-                          <ul className="space-y-2">
-                            <li className="flex gap-2 items-start">
-                              <span className="text-blue-705 font-bold">✓</span>
-                              <span><strong>九級強風避風避行原則</strong>：瞬間陣風若接近 8-9 級以上，高空招牌、路樹枝椏極易折斷。切忌勉強騎上高架橋、跨海大橋。</span>
-                            </li>
-                            <li className="flex gap-2 items-start">
-                              <span className="text-blue-705 font-bold">✓</span>
-                              <span><strong>停班強制斷單機制</strong>：縣市若公告停班課，平台（基於防汛安規）將在當下全線強制關閉外送！外送員應立即依規返家。</span>
-                            </li>
-                            <li className="flex gap-2 items-start">
-                              <span className="text-blue-705 font-bold">✓</span>
-                              <span><strong>高胎紋與高抓地配備</strong>：出勤前確認安全帽雙扣環牢靠、防滑工作鞋墊、機車輪胎磨損度，雨天行車煞車安全距離應拉長 3 倍。</span>
-                            </li>
-                            <li className="flex gap-2 items-start">
-                              <span className="text-blue-705 font-bold">✓</span>
-                              <span><strong>低窪積水決不強行涉水</strong>：若積水高過 20 公分（約半個輪胎高），地下可能因排水孔反溢導致下水道孔蓋移位，強行通過極其危險！</span>
-                            </li>
-                          </ul>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* 專屬提醒 & 避難包 */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* 家庭關懷提醒 */}
-                  <div className="bg-[#FAF9F6] rounded-xl border border-stone-205 p-5 flex flex-col gap-4">
-                    <h3 className="text-base font-bold text-[#7f1d1d] flex items-center gap-1.5 uppercase tracking-wider">
-                       <HeartPulse className="w-4 h-4" /> 專屬家庭安全提醒
-                    </h3>
-                    <div className="flex flex-col gap-3">
-                      {analysisResult.familyCare?.map((reminder, idx) => (
-                        <div key={idx} className="flex items-start gap-2.5 text-sm md:text-base text-stone-700 font-medium">
-                          <AlertCircle className="w-5 h-5 text-stone-500 shrink-0 mt-0.5" />
-                          <p className="leading-relaxed">{reminder}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* 避難包建議 */}
-                  <div className="bg-[#FAF9F6] rounded-xl border border-stone-205 p-5 flex flex-col gap-4">
-                    <h3 className="text-base font-bold text-stone-800 flex items-center gap-1.5 uppercase tracking-wider">
-                      <CloudLightning className="w-4 h-4 text-stone-600" /> 與日常生活的整備建議
-                    </h3>
-                    <div className="flex flex-col gap-3">
-                      {analysisResult.bagRecommendations?.map((item, idx) => (
-                        <div key={idx} className="flex items-start gap-2.5 text-sm md:text-base text-stone-700 font-semibold">
-                           <div className="w-5 h-5 rounded-full bg-[#f4f1eb] border border-stone-300 flex items-center justify-center shrink-0 mt-0.5">
-                             <Check className="w-3 h-3 text-stone-700" strokeWidth={3.5} />
-                           </div>
-                           <p className="leading-relaxed">{item}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* 整備缺點診斷 */}
-                {analysisResult.deficiencyAnalysis && (
-                  <div className="bg-red-50/50 rounded-xl border border-red-200 p-6 flex flex-col gap-5 mt-2">
-                    <h3 className="text-base font-bold text-[#7f1d1d] flex items-center gap-2 uppercase tracking-wider">
-                      <AlertCircle className="w-5 h-5" /> 
-                      🚨 安全漏洞與整備缺點診斷 (AI 弱點分析)
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-3">
-                        <h4 className="text-sm font-bold text-red-900 border-b border-red-200 pb-2">當前脆弱點與盲區</h4>
-                        <ul className="space-y-3">
-                          {analysisResult.deficiencyAnalysis.weaknesses.map((w, idx) => (
-                            <li key={idx} className="flex items-start gap-2.5 text-sm md:text-base text-red-800 font-medium">
-                              <span className="shrink-0 text-red-500 mt-1">✗</span>
-                              <span className="leading-relaxed">{w}</span>
-                            </li>
                           ))}
-                        </ul>
+                        </div>
                       </div>
-                      <div className="space-y-3">
-                        <h4 className="text-sm font-bold text-emerald-900 border-b border-emerald-200 pb-2">改善方案與策略</h4>
-                        <ul className="space-y-3">
-                          {analysisResult.deficiencyAnalysis.improvements.map((imp, idx) => (
-                            <li key={idx} className="flex items-start gap-2.5 text-sm md:text-base text-emerald-800 font-medium">
-                              <span className="shrink-0 text-emerald-600 mt-1">✓</span>
-                              <span className="leading-relaxed">{imp}</span>
-                            </li>
+
+                      {/* 24 Hours follow up */}
+                      <div className="p-5 space-y-3">
+                        <h4 className="text-xs uppercase font-extrabold tracking-widest text-stone-600 dark:text-stone-400 flex items-center gap-1">
+                          <span className="w-2 h-2 rounded-full bg-stone-500 shrink-0" />
+                          持續跟備 (未來 24 小時定期檢查)
+                        </h4>
+                        <div className="pl-3.5 border-l border-stone-250 dark:border-stone-800 space-y-3.5 pt-1.5">
+                          {analysisResult.actionableTimeline.next24h?.map((action, i) => (
+                            <div key={i} className="text-xs text-stone-750 dark:text-stone-300 leading-relaxed font-semibold relative">
+                              <span className="absolute -left-[20.5px] top-0.5 w-[14px] h-[14px] rounded-full bg-stone-200 dark:bg-stone-800 text-stone-700 dark:text-stone-400 text-[9px] font-black flex items-center justify-center">
+                                {i + 1}
+                              </span>
+                              <span>{action}</span>
+                            </div>
                           ))}
-                        </ul>
+                        </div>
                       </div>
+
                     </div>
                   </div>
                 )}
 
-                <p className="text-center text-xs text-stone-400 font-medium">
-                  以上為 AI 分析建議，防災行動請以政府官方指引為主
-                </p>
-
-                {/* 離線防災整備備忘卡 */}
-                <div className="bg-white rounded-xl border border-stone-200 p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
-                  <div className="space-y-1">
-                    <h4 className="text-sm font-bold text-stone-800 flex items-center gap-1.5 uppercase tracking-wide">
-                      <FileText className="w-4 h-4 text-[#7f1d1d]" />
-                      <span>離線防災手冊（一鍵隨身攜帶）</span>
+                {/* Shelter advice guidance */}
+                {analysisResult.shelterGuidance && (
+                  <div className="bg-white dark:bg-stone-900 border border-stone-250 dark:border-stone-850 p-6 rounded-2xl text-left space-y-4">
+                    <h4 className="text-xs font-black tracking-wider text-stone-800 dark:text-orange-400 uppercase flex items-center gap-1.5">
+                      <MapPin className="w-4 h-4 text-slate-705 dark:text-orange-500" />
+                      推薦指定里鄰撤避避難中心與路線方針
                     </h4>
-                    <p className="text-xs text-stone-500 leading-relaxed font-medium">
-                      在極端天氣導致電力或網路中斷時，網站資訊可能無法讀取。強烈建議現在複製整份客製指南，存入手機離線備忘錄或通訊群組備存。
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-1 border-t border-stone-100 dark:border-stone-850">
+                      <div>
+                        <span className="text-[11px] font-extrabold text-[#ea580c] tracking-widest uppercase block mb-2">建議前往撤避集中點</span>
+                        <div className="space-y-2">
+                          {analysisResult.shelterGuidance.nearestOptions?.map((o, idx) => (
+                            <div key={idx} className="bg-stone-50 dark:bg-stone-950 border border-stone-200 dark:border-stone-800 rounded-lg p-2.5 flex items-center gap-2 text-xs font-semibold text-stone-705 dark:text-stone-200">
+                              <span className="w-5 h-5 rounded-full bg-slate-900 text-white text-[10px] flex items-center justify-center shrink-0">
+                                {idx + 1}
+                              </span>
+                              <span>{o}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <span className="text-[11px] font-extrabold text-[#ea580c] tracking-widest uppercase block mb-2">安全行進守則</span>
+                        <ul className="space-y-2.5 text-xs font-semibold text-stone-650 dark:text-stone-400">
+                          {analysisResult.shelterGuidance.safetyCriteria?.map((c, idx) => (
+                            <li key={idx} className="flex gap-2 items-start leading-relaxed text-stone-700 dark:text-stone-300">
+                              <span className="text-slate-800 dark:text-orange-500 font-bold">✓</span>
+                              <span>{c}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* AI Deficiency Diagnostics */}
+                {analysisResult.deficiencyAnalysis && (
+                  <div className="bg-red-500/5 border border-red-200 dark:border-red-900/50 rounded-2xl p-6 text-left">
+                    <h4 className="text-xs font-black text-[#ea580c] dark:text-orange-400 uppercase tracking-widest flex items-center gap-1.5 mb-4">
+                      <AlertCircle className="w-4.5 h-4.5" />
+                      🚨 AI 漏洞偵測與物資整檢缺點診斷 (Deficiency Audit)
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <div>
+                        <span className="text-xs font-extrabold text-red-950 dark:text-red-300 block border-b border-red-200/50 pb-1 mb-2">
+                          偵測脆弱盲區
+                        </span>
+                        <ul className="space-y-2 text-xs font-semibold text-red-900 dark:text-red-400">
+                          {analysisResult.deficiencyAnalysis.weaknesses.map((w, idx) => (
+                            <li key={idx} className="flex gap-1.5 items-start">
+                              <span className="text-red-500">✗</span>
+                              <span>{w}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      <div>
+                        <span className="text-xs font-extrabold text-emerald-950 dark:text-emerald-300 block border-b border-emerald-250 pb-1 mb-2">
+                          改善修補具體方案
+                        </span>
+                        <ul className="space-y-2 text-xs font-semibold text-emerald-900 dark:text-emerald-450">
+                          {analysisResult.deficiencyAnalysis.improvements.map((imp, idx) => (
+                            <li key={idx} className="flex gap-1.5 items-start text-emerald-800 dark:text-emerald-400">
+                              <span className="text-emerald-600">✓</span>
+                              <span>{imp}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Offline export controller */}
+                <div className="bg-[#FAF9F6] dark:bg-stone-950 border border-stone-200 dark:border-stone-850 p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-left">
+                  <div className="space-y-1">
+                    <h4 className="text-sm font-extrabold text-stone-850 dark:text-white flex items-center gap-1.5">
+                      <FileText className="w-4 h-4 text-slate-705 dark:text-orange-500" />
+                      一鍵複製客製離線防災卡
+                    </h4>
+                    <p className="text-xs text-stone-500 dark:text-stone-400 leading-relaxed font-semibold">
+                      在極大暴雨強風、嚴重餘震停電時，極高機率完全與網路失聯。強烈建議此時一鍵複製全套防務卡，貼入手機備忘錄或通訊群組。
                     </p>
                   </div>
                   <button
                     onClick={handleExportOffline}
-                    className="shrink-0 bg-stone-900 border border-stone-800 font-bold text-white text-sm px-4 py-2.5 rounded-lg hover:bg-stone-800 transition-all active:scale-[0.98] select-none flex items-center justify-center gap-2"
+                    className="bg-slate-800 hover:bg-slate-900 dark:bg-orange-600 dark:hover:bg-orange-700 text-white font-extrabold text-xs px-5 py-3 rounded-xl transition-all shadow-sm shrink-0 flex items-center justify-center gap-1.5 hover:scale-101 active:scale-95 cursor-pointer min-h-[48px]"
                   >
                     {copied ? (
                       <>
-                        <Check className="w-3.5 h-3.5 text-stone-300 animate-pulse" strokeWidth={3} />
-                        <span>已成功備份至剪貼簿！</span>
+                        <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
+                        <span>成功備分剪貼簿！</span>
                       </>
                     ) : (
                       <>
-                        <Send className="w-3.5 h-3.5 opacity-80" />
-                        <span>一鍵複製離線防災卡</span>
+                        <Send className="w-3.5 h-3.5 text-white" />
+                        <span>一鍵備存自救卡</span>
                       </>
                     )}
                   </button>
@@ -1935,225 +1502,229 @@ ${missingList || '所有物資皆已備妥！'}
 
               </div>
             )}
-            </div>
-              
-              {/* Sidebar Interface (Adaptive Tabs) */}
-              <div id="app-right-sidebar" className="md:col-span-2 xl:col-span-1 flex flex-col gap-6 order-2 md:order-none">
-                <div className="bg-white rounded-xl border border-stone-200 overflow-hidden flex flex-col h-[650px] xl:max-h-[850px] md:sticky md:top-6 lg:sticky xl:top-24">
-                  
-                  {/* Tab Selector Buttons */}
-                  <div className="bg-[#FAF9F6] border-b border-stone-200 p-2 shrink-0 flex items-center gap-1.5 shadow-xs">
-                    <button
-                      type="button"
-                      onClick={() => setSidebarTab('supplies')}
-                      className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                        sidebarTab === 'supplies'
-                          ? 'bg-white text-stone-900 shadow-[0_1px_3px_rgba(0,0,0,0.06)] border border-stone-200/85'
-                          : 'text-stone-500 hover:text-stone-800 hover:bg-stone-100/60'
-                      }`}
-                    >
-                      <Check className="w-3.5 h-3.5 text-[#7f1d1d]" strokeWidth={3} />
-                      <span>避難物品清單</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setSidebarTab('chat')}
-                      className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                        sidebarTab === 'chat'
-                          ? 'bg-white text-stone-900 shadow-[0_1px_3px_rgba(0,0,0,0.06)] border border-stone-200/85'
-                          : 'text-stone-500 hover:text-stone-800 hover:bg-stone-100/60'
-                      }`}
-                    >
-                      <Sparkles className="w-3.5 h-3.5 text-[#7f1d1d]" />
-                      <span>AI 精準諮詢</span>
-                    </button>
-                  </div>
 
-                  {sidebarTab === 'supplies' ? (
-                    <div className="flex-1 overflow-y-auto p-3 custom-scrollbar bg-stone-50/10">
-                      <SuppliesInventory 
-                        supplies={supplies} 
-                        setSupplies={setSupplies} 
-                        memberCount={memberCount} 
-                        setMemberCount={setMemberCount} 
-                        isSidebar={true}
-                      />
-                    </div>
-                  ) : (
-                    <>
-                      <div className="bg-[#FAF9F6] border-b border-stone-150 p-3 shrink-0 flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className="w-5 h-5 rounded bg-[#f4f1eb] text-stone-700 flex items-center justify-center">
-                            <UserCircle2 className="w-3.5 h-3.5" />
-                          </div>
-                          <h3 className="text-xs font-extrabold tracking-wider text-stone-700 font-sans flex items-center gap-1">
-                            <span>AI 防災諮詢顧問</span>
-                            <span className="text-[9px] bg-[#7f1d1d]/10 text-[#7f1d1d] font-extrabold px-1 py-0.2 rounded-sm shrink-0 scale-90 border border-[#7f1d1d]/10">AI</span>
-                          </h3>
-                        </div>
-                        <div className="flex items-center gap-1 bg-stone-100 px-2 py-0.5 rounded border border-stone-200/30">
-                           <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-                           <span className="text-[10px] font-extrabold text-stone-500">待命諮詢中</span>
-                        </div>
-                      </div>
-                      
-                      <div className="flex-1 p-4 overflow-y-auto flex flex-col gap-4 bg-stone-50/20 custom-scrollbar">
-                        {chatHistory.length === 0 && (
-                          <div className="text-center text-stone-600 text-sm my-auto bg-white p-5 rounded-lg border border-stone-200 max-w-xs mx-auto shadow-none">
-                            <UserCircle2 className="w-8 h-8 text-stone-400 mx-auto mb-2" strokeWidth={1.5} />
-                            <p className="font-bold text-sm text-stone-700 mb-1">AI 專屬對話諮詢與缺點分析</p>
-                            <p className="text-stone-500 leading-relaxed text-sm">有任何防災與特定物資問題？隨時輸入，由 AI 防災專員為您深度解答、分析漏洞並提供全方位安全指引。</p>
-                          </div>
-                        )}
-                        
-                        {chatHistory.map((chat, idx) => (
-                          <div key={idx} className={`flex w-full ${chat.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                            <div className={`flex gap-3.5 max-w-[85%] ${chat.role === 'user' ? 'flex-row-reverse' : ''}`}>
-                              {chat.role === 'ai' && (
-                                <div className="w-6 h-6 rounded bg-stone-100 border border-stone-200 shadow-sm flex items-center justify-center shrink-0 mt-1">
-                                  <Sparkles className="w-3.5 h-3.5 text-[#7f1d1d]" />
-                                </div>
-                              )}
-                              <div className={`p-3 rounded-lg shadow-none text-sm ${
-                                chat.role === 'user' 
-                                  ? 'bg-stone-800 text-white font-medium' 
-                                  : 'bg-[#f5f4f0] border border-stone-200 text-stone-800'
-                              }`}>
-                                 <p className="leading-relaxed whitespace-pre-wrap">{chat.text}</p>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-
-                        {isChatting && (
-                          <div className="flex w-full justify-start">
-                            <div className="flex gap-2.5 max-w-[85%]">
-                              <div className="w-6 h-6 rounded bg-stone-100 border border-stone-200 flex items-center justify-center shrink-0 mt-1">
-                                <Sparkles className="w-3.5 h-3.5 text-[#7f1d1d]" />
-                              </div>
-                              <div className="bg-[#f5f4f0] border border-stone-200 p-3 rounded-lg flex items-center gap-1.5 h-[32px]">
-                                <div className="w-1 h-1 bg-stone-400 rounded-full animate-bounce" />
-                                <div className="w-1 h-1 bg-stone-400 rounded-full animate-bounce [animation-delay:0.2s]" />
-                                <div className="w-1 h-1 bg-stone-400 rounded-full animate-bounce [animation-delay:0.4s]" />
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      <form onSubmit={handleChat} className="p-3 bg-white border-t border-stone-200 flex gap-2 shrink-0 items-center">
-                        <input
-                          type="text"
-                          value={chatMessage}
-                          onChange={(e) => setChatMessage(e.target.value)}
-                          placeholder="請輸入您的問題..."
-                          className="flex-1 bg-stone-50 border border-stone-200 py-2.5 px-3 rounded-lg text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-1 focus:ring-stone-400 focus:border-stone-400 transition-colors font-medium animate-none animate-none"
-                        />
-                        <button
-                          type="submit"
-                          disabled={isChatting || !chatMessage.trim()}
-                          className="bg-stone-900 hover:bg-stone-800 text-white w-9 h-9 rounded-lg transition-all disabled:opacity-50 flex items-center justify-center shrink-0 active:scale-95 shadow-none"
-                        >
-                          <Send className="w-4 h-4" />
-                        </button>
-                      </form>
-                    </>
-                  )}
-                </div>
+            {!analysisResult && !isAnalyzing && (
+              <div className="bg-stone-50 dark:bg-stone-950 border border-stone-200/50 dark:border-stone-850 p-8 rounded-2xl text-center flex flex-col items-center">
+                <Sparkles className="w-8 h-8 text-stone-400 mb-3" />
+                <p className="text-xs text-stone-550 dark:text-stone-400 font-bold max-w-sm">
+                  目前尚未生成個人化建議。點擊右上方「即刻生成客製指南」按鈕，Gemini 便會即時為您整合分析居住地潛勢及配套漏網。
+                </p>
               </div>
-              
-            </div>
+            )}
           </div>
 
-          <footer className="mt-8 mb-4 text-center text-[11px] text-stone-400 font-medium border-t border-stone-200/50 pt-4 max-w-2xl mx-auto">
-            本網站防災資訊參考自中央氣象署及內政部消防署公開資料，AI 功能由 Google Gemini 提供。
-          </footer>
         </div>
-      </div>
 
-      {/* 🚨 Emergency Self-Rescue Guide Interactive Modal */}
+        {/* Right Tabbed Sticky Sidebar Profile + Supplies Inventory Checklist */}
+        <div id="right-sidebar" className="lg:col-span-1 flex flex-col gap-6">
+          <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-3xl overflow-hidden shadow-sm flex flex-col lg:sticky lg:top-8 h-[650px] lg:max-h-[85vh]">
+            
+            {/* Sidebar toggle buttons */}
+            <nav 
+              className="bg-stone-100 dark:bg-stone-950 border-b border-stone-200 dark:border-stone-850 p-2 shrink-0 flex items-center gap-1.5"
+              role="tablist"
+              aria-label="側邊欄面板選單"
+            >
+              <button
+                onClick={() => setSidebarTab('supplies')}
+                className={`flex-1 py-3 px-4 rounded-xl text-xs font-extrabold transition-all duration-200 flex items-center justify-center gap-1.5 cursor-pointer min-h-[48px] ${
+                  sidebarTab === 'supplies'
+                    ? 'bg-white dark:bg-stone-900 text-slate-805 dark:text-orange-400 shadow-sm border border-stone-200/60 dark:border-stone-800'
+                    : 'text-stone-500 hover:text-stone-850 dark:hover:text-stone-200'
+                }`}
+                role="tab"
+                aria-selected={sidebarTab === 'supplies'}
+                aria-label="避難物品清單面板"
+              >
+                <Check className="w-4 h-4 text-orange-500" strokeWidth={3} />
+                <span>避難物品清單</span>
+              </button>
+              <button
+                onClick={() => setSidebarTab('chat')}
+                className={`flex-1 py-3 px-4 rounded-xl text-xs font-extrabold transition-all duration-200 flex items-center justify-center gap-1.5 cursor-pointer min-h-[48px] ${
+                  sidebarTab === 'chat'
+                    ? 'bg-white dark:bg-stone-900 text-slate-805 dark:text-orange-400 shadow-sm border border-stone-200/60 dark:border-stone-800'
+                    : 'text-stone-500 hover:text-stone-850 dark:hover:text-stone-200'
+                }`}
+                role="tab"
+                aria-selected={sidebarTab === 'chat'}
+                aria-label="AI 防災諮詢面板"
+              >
+                <Sparkles className="w-4 h-4 text-orange-500" />
+                <span>AI 精準諮詢</span>
+              </button>
+            </nav>
+
+            {sidebarTab === 'supplies' ? (
+              <div className="flex-1 overflow-y-auto p-2.5 custom-scrollbar bg-stone-50/10 dark:bg-stone-950/20">
+                <SuppliesInventory 
+                  supplies={supplies} 
+                  setSupplies={setSupplies} 
+                  memberCount={memberCount} 
+                  setMemberCount={setMemberCount} 
+                  isSidebar={true}
+                />
+              </div>
+            ) : (
+              <div className="flex-1 flex flex-col justify-between overflow-hidden">
+                <div className="bg-stone-100 dark:bg-stone-950 border-b border-stone-200 dark:border-stone-850 px-4 py-3 shrink-0 flex items-center justify-between">
+                  <span className="text-xs font-black text-stone-700 dark:text-stone-300 uppercase flex items-center gap-1.5">
+                    <UserCircle2 className="w-4 h-4" /> AI 防災專屬顧問
+                  </span>
+                  <div className="flex items-center gap-1 bg-stone-50 dark:bg-stone-900 px-2 py-0.5 rounded border border-stone-200/50 dark:border-stone-800/40 shrink-0 scale-95">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-[10px] text-stone-500 dark:text-stone-400 font-bold">待命解答中</span>
+                  </div>
+                </div>
+
+                {/* Chat window viewport */}
+                <div className="flex-1 p-4 overflow-y-auto flex flex-col gap-4 bg-stone-50/20 dark:bg-stone-950/10 custom-scrollbar">
+                  {chatHistory.length === 0 && (
+                    <div className="text-center text-stone-600 dark:text-stone-400 text-xs my-auto bg-[#FAF9F6] dark:bg-stone-950 p-5 rounded-2xl border border-stone-200 dark:border-stone-850 space-y-2 max-w-xs mx-auto">
+                      <Sparkles className="w-8 h-8 text-stone-400 mx-auto" />
+                      <p className="font-extrabold text-sm text-stone-800 dark:text-white">
+                        有任何防災上的不解與特定藥物疑問嗎？
+                      </p>
+                      <p className="leading-relaxed font-semibold">
+                        貼上您的 API Key 即可與 Gemini 自由諮詢。例如您可以提問：「家有氣喘慢性病患怎麼準備特定避難包？」、「高樓防震固定怎麼施工最適妥？」！
+                      </p>
+                    </div>
+                  )}
+
+                  {chatHistory.map((chat, idx) => (
+                    <div key={idx} className={`flex w-full ${chat.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`p-3 max-w-[85%] rounded-2xl text-xs sm:text-sm text-left leading-relaxed font-semibold transition-all ${
+                        chat.role === 'user'
+                          ? 'bg-slate-700 text-white shadow-sm'
+                          : 'bg-stone-100 dark:bg-stone-800 border border-stone-200 dark:border-stone-750 text-stone-800 dark:text-stone-100'
+                      }`}>
+                        <p className="whitespace-pre-wrap">{chat.text}</p>
+                      </div>
+                    </div>
+                  ))}
+
+                  {isChatting && (
+                    <div className="flex w-full justify-start">
+                      <div className="bg-stone-100 dark:bg-stone-800 border border-stone-200 dark:border-stone-750 p-3 rounded-2xl flex items-center justify-center h-[34px] w-[50px]">
+                        <div className="w-1.5 h-1.5 bg-stone-500 dark:bg-stone-300 rounded-full animate-bounce [animation-delay:0.2s] mx-0.5" />
+                        <div className="w-1.5 h-1.5 bg-stone-500 dark:bg-stone-300 rounded-full animate-bounce [animation-delay:0.4s] mx-0.5" />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <form onSubmit={handleChat} className="p-3 bg-white dark:bg-stone-900 border-t border-stone-200 dark:border-stone-850 flex gap-2 shrink-0 items-center">
+                  <input
+                    type="text"
+                    value={chatMessage}
+                    onChange={(e) => setChatMessage(e.target.value)}
+                    placeholder="請描述您的避難疑惑或特定疾病..."
+                    className="flex-1 bg-stone-50 dark:bg-stone-950 border border-stone-200 dark:border-stone-800 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-slate-500 font-semibold"
+                  />
+                  <button
+                    type="submit"
+                    disabled={isChatting || !chatMessage.trim()}
+                    className="bg-slate-800 hover:bg-slate-900 dark:bg-orange-600 dark:hover:bg-orange-700 text-white w-10 h-10 rounded-xl transition-all disabled:opacity-40 flex items-center justify-center shrink-0 cursor-pointer min-h-[44px]"
+                  >
+                    <Send className="w-4 h-4 text-white" />
+                  </button>
+                </form>
+              </div>
+            )}
+
+          </div>
+        </div>
+
+      </main>
+
+      <footer className="mt-12 mb-8 text-center text-xs text-stone-400 dark:text-stone-500 font-bold border-t border-stone-200/40 dark:border-stone-800/40 pt-5 max-w-2xl mx-auto leading-normal">
+        本網站防災指南均遵守內政部消防署、交通部中央氣象署規範，AI 功能架接自 Google Gemini 大語言模型。<br/>
+        防災生活與居住準備指南 ｜ 守護您與家人的生活安全防線
+      </footer>
+
+      {/* 🚨 Emergency Self-Rescue Guide Interactive Modal with Large Clickable Touches */}
       {activeEmergencyGuide && (() => {
         const guide = EMERGENCY_GUIDES[activeEmergencyGuide];
         const isGuideCompleted = guide.steps.every(step => emergencyChecks[step.id]);
         return (
-          <div className="fixed inset-0 z-50 bg-stone-950/85 backdrop-blur-md flex items-center justify-center p-4">
-            <div className="w-full max-w-2xl bg-stone-900 border border-stone-800 rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh] text-stone-150">
+          <div className="fixed inset-0 z-50 bg-stone-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4">
+            <div className="w-full max-w-2xl bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-800 rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh] text-left">
               
-              {/* Modal Header */}
-              <div className="p-5 sm:p-6 border-b border-stone-800 bg-stone-950 relative">
-                <span className="text-[10px] bg-red-650 bg-red-900/40 text-red-300 font-extrabold border border-red-700/40 px-2.5 py-1 rounded-full uppercase tracking-widest leading-none">
+              {/* Modal header details */}
+              <div className="p-5 sm:p-6 bg-stone-950 text-white relative">
+                <span className="text-[10px] bg-red-900/40 text-red-300 font-extrabold border border-red-700/40 px-3 py-1 rounded-full uppercase tracking-widest leading-none">
                   {guide.badge}
                 </span>
-                <h3 className="text-lg sm:text-xl font-black text-white mt-3 flex items-center gap-2">
+                <h3 className="text-lg sm:text-xl font-black text-white mt-3">
                   {guide.title}
                 </h3>
                 <p className="text-xs text-stone-400 font-bold leading-relaxed mt-1">
                   {guide.subtitle}
                 </p>
-                
                 <button
-                  type="button"
                   onClick={() => setActiveEmergencyGuide(null)}
-                  className="absolute right-5 top-5 text-stone-500 hover:text-stone-200 hover:bg-stone-800/50 p-2 rounded-full transition-all text-sm font-extrabold cursor-pointer"
+                  className="absolute right-5 top-5 bg-white/10 hover:bg-white/20 text-white w-10 h-10 rounded-full flex items-center justify-center duration-150 transition-colors cursor-pointer min-h-[44px]"
+                  title="關閉自救手冊"
                 >
                   ✕
                 </button>
               </div>
 
-              {/* Progress Bar */}
-              <div className="bg-stone-950 px-6 py-3 border-b border-stone-800 flex items-center justify-between text-xs font-bold text-stone-400">
+              {/* Progress feedback bar */}
+              <div className="bg-stone-100 dark:bg-stone-950 px-6 py-3 border-b border-stone-200 dark:border-stone-850 flex items-center justify-between text-xs font-bold text-stone-500">
                 <span className="flex items-center gap-1.5">
                   <span>防護進度：</span>
-                  <span className="text-emerald-400 font-extrabold text-sm ml-0.5">
-                    {guide.steps.filter(s => emergencyChecks[s.id]).length} / {guide.steps.length} 步驟已確認
+                  <span className="text-emerald-650 dark:text-emerald-400 font-extrabold text-sm ml-0.5">
+                    {guide.steps.filter(s => emergencyChecks[s.id]).length} / {guide.steps.length} 步驟已確認已讀
                   </span>
                 </span>
                 {isGuideCompleted ? (
-                   <span className="text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 font-black animate-pulse">
-                     🔥 求生防護完畢！
-                   </span>
+                  <span className="text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 font-black animate-pulse">
+                    🔥 本單元求生守護完畢！
+                  </span>
                 ) : (
-                   <span className="text-amber-400 font-extrabold">🚨 有部分常規撤離尚未到位</span>
+                  <span className="text-[#ea580c] font-black">🚨 尚有救命指導尚未落實檢查</span>
                 )}
               </div>
 
-              {/* Scrollable List of Interactive Steps */}
-              <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4 custom-scrollbar">
-                <div className="text-xs bg-amber-500/10 border border-amber-500/20 text-amber-300 p-4 rounded-xl flex gap-3">
-                  <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5 animate-bounce" />
+              {/* Steps checklist with large touch boxes */}
+              <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4 custom-scrollbar dark:bg-stone-900">
+                <div className="text-xs bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-400 p-4 rounded-xl flex gap-3">
+                  <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5 animate-bounce" />
                   <p className="leading-relaxed font-semibold">
-                    <strong>強烈防禦心法：</strong>本指引專供緊臨臨災時 10 秒極速檢視。點選下方條目可直接核實並儲存至本地，即使完全斷網（ offline 狀態下）也支持在手機上交互使用、守護安全。
+                    此自救卡完全下載備份於您的手機儲存空間。即便已斷電斷網、信號不通，仍可自由交互點用，引導全家脫離威脅。
                   </p>
                 </div>
 
-                <div className="space-y-2.5">
+                <div className="space-y-3">
                   {guide.steps.map((step, idx) => {
                     const isChecked = !!emergencyChecks[step.id];
                     return (
                       <div
                         key={step.id}
                         onClick={() => setEmergencyChecks(prev => ({ ...prev, [step.id]: !prev[step.id] }))}
-                        className={`flex items-start gap-3.5 p-3.5 rounded-xl border transition-all cursor-pointer ${
+                        className={`flex items-start gap-4 p-4 rounded-xl border cursor-pointer select-none transition-all ${
                           isChecked 
-                            ? 'bg-emerald-950/20 border-emerald-800/40 opacity-70 hover:opacity-100' 
-                            : 'bg-stone-950/50 border-stone-800 hover:border-stone-700'
+                            ? 'bg-emerald-500/5 border-emerald-355 opacity-70 hover:opacity-100' 
+                            : 'bg-white dark:bg-stone-950 border-stone-200 dark:border-stone-850 hover:border-slate-400'
                         }`}
                       >
                         <div className="mt-0.5">
-                          <div className={`w-4.5 h-4.5 rounded border flex items-center justify-center shrink-0 transition-colors ${
+                          {/* Checkboxes >= 22px */}
+                          <div className={`w-[22px] h-[22px] rounded border flex items-center justify-center shrink-0 transition-all ${
                             isChecked 
                               ? 'bg-emerald-600 border-emerald-600 text-white' 
-                              : 'border-stone-600 bg-stone-900 text-transparent'
+                              : 'border-stone-305 bg-[#FAF9F6]'
                           }`}>
-                            {isChecked && <Check className="w-3 h-3 text-white" strokeWidth={3.5} />}
+                            {isChecked && <Check className="w-3.5 h-3.5 text-white" strokeWidth={3.5} />}
                           </div>
                         </div>
                         <div className="flex-1 text-left">
-                          <span className="text-[10px] font-bold text-stone-500 uppercase tracking-widest mr-2">
-                            自救機制 {idx + 1}
+                          <span className="text-[10px] font-black text-stone-500 uppercase tracking-widest mr-2 block">
+                            避嫌自救決策步驟 {idx + 1}
                           </span>
-                          <p className={`text-xs sm:text-sm leading-relaxed mt-0.5 font-semibold ${
-                            isChecked ? 'text-stone-400 line-through' : 'text-stone-200'
+                          <p className={`text-sm leading-relaxed mt-1 font-semibold ${
+                            isChecked ? 'text-stone-400 dark:text-stone-550 line-through' : 'text-stone-800 dark:text-stone-100'
                           }`}>
                             {step.text}
                           </p>
@@ -2164,33 +1735,30 @@ ${missingList || '所有物資皆已備妥！'}
                 </div>
               </div>
 
-              {/* Dialog Footer */}
-              <div className="p-5 sm:p-6 border-t border-stone-850 bg-stone-950 flex flex-col sm:flex-row gap-4 items-center justify-between">
-                <div className="flex items-center gap-1.5 text-xs text-stone-400 font-semibold self-start sm:self-center">
-                   <Phone className="w-4 h-4 text-red-405 text-red-500 animate-pulse" />
-                   <span>通訊崩潰時點此直撥求救：</span>
-                   <a href="tel:119" className="text-red-400 hover:underline font-extrabold text-sm ml-1">119</a> | 
-                   <a href="tel:112" className="text-amber-400 hover:underline font-extrabold text-sm ml-1">112</a>
+              {/* Modal footer, urgent dispatch phones */}
+              <div className="p-5 sm:p-6 bg-stone-50 dark:bg-stone-950 border-t border-stone-200 dark:border-stone-850 flex flex-col sm:flex-row gap-4 items-center justify-between">
+                <div className="flex flex-wrap items-center gap-1.5 text-xs text-stone-500 font-bold self-start sm:self-center">
+                  <Phone className="w-4 h-4 text-red-500 animate-pulse" />
+                  <span>撥打 119 求援 ｜ 全民防災互聽平安留言撥：</span>
+                  <a href="tel:1991" className="text-red-500 hover:underline font-extrabold text-sm ml-1">1991</a>
                 </div>
                 
-                <div className="flex items-center gap-2 w-full sm:w-auto">
+                <div className="flex items-center gap-2.5 w-full sm:w-auto">
                   <button
-                    type="button"
                     onClick={() => setEmergencyChecks(prev => {
                       const cleared = { ...prev };
                       guide.steps.forEach(s => cleared[s.id] = false);
                       return cleared;
                     })}
-                    className="flex-1 sm:flex-none border border-stone-800 hover:bg-stone-800 text-stone-450 hover:text-stone-300 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer text-center"
+                    className="flex-1 sm:flex-none border border-stone-300 dark:border-stone-800 bg-white dark:bg-stone-900 hover:bg-stone-100 text-stone-600 dark:text-stone-350 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer text-center min-h-[44px]"
                   >
-                    重置進度
+                    重置自救卡
                   </button>
                   <button
-                    type="button"
                     onClick={() => setActiveEmergencyGuide(null)}
-                    className="flex-1 sm:flex-none bg-emerald-700 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer text-center"
+                    className="flex-1 sm:flex-none bg-[#7f1d1d] hover:bg-[#6b1812] text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer text-center min-h-[44px]"
                   >
-                    關閉自救指引
+                    防護完畢
                   </button>
                 </div>
               </div>
@@ -2199,7 +1767,7 @@ ${missingList || '所有物資皆已備妥！'}
           </div>
         );
       })()}
+
     </div>
   );
 }
-

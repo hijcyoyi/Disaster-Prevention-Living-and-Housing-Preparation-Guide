@@ -65,6 +65,7 @@ async function callGeminiDirectly(prompt: string, responseType: "json" | "text" 
     ];
   }
 
+  console.log('送出 API 請求，URL：', url);
   try {
     const res = await fetch(url, {
       method: "POST",
@@ -87,12 +88,13 @@ async function callGeminiDirectly(prompt: string, responseType: "json" | "text" 
     }
 
     return textVal;
-  } catch (err: any) {
+  } catch (error: any) {
+    console.error('API 錯誤：', error);
     if (useSearch) {
-      console.warn("Direct API call with googleSearch failed, retrying without live search tool:", err);
+      console.warn("Direct API call with googleSearch failed, retrying without live search tool:", error);
       return callGeminiDirectly(prompt, responseType, false);
     }
-    throw new Error(`直接提交 Google API 失敗: ${err.message || err}`);
+    throw new Error(`直接提交 Google API 失敗: ${error.message || error}`);
   }
 }
 
@@ -265,18 +267,25 @@ export async function analyzeRisk(
   }
 
   // 預設走後端
-  const res = await fetch("/api/gemini/analyze-risk", {
-    method: "POST",
-    headers: getHeaders(),
-    body: JSON.stringify({ location, familyProfile, environmentDesc, missingItems })
-  });
-  
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.error || `分析失敗 (HTTP ${res.status})`);
+  const url = "/api/gemini/analyze-risk";
+  console.log('送出 API 請求，URL：', url);
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: getHeaders(),
+      body: JSON.stringify({ location, familyProfile, environmentDesc, missingItems })
+    });
+    
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.error || `分析失敗 (HTTP ${res.status})`);
+    }
+    
+    return res.json();
+  } catch (error: any) {
+    console.error('API 錯誤：', error);
+    throw error;
   }
-  
-  return res.json();
 }
 
 /**
@@ -338,18 +347,25 @@ export async function sendChatMessage(params: {
     }
   }
 
-  const res = await fetch("/api/gemini/chat", {
-    method: "POST",
-    headers: getHeaders(),
-    body: JSON.stringify(params)
-  });
-  
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.reply || errorData.error || `連線錯誤 (HTTP ${res.status})`);
+  const url = "/api/gemini/chat";
+  console.log('送出 API 請求，URL：', url);
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: getHeaders(),
+      body: JSON.stringify(params)
+    });
+    
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.reply || errorData.error || `連線錯誤 (HTTP ${res.status})`);
+    }
+    
+    return res.json();
+  } catch (error: any) {
+    console.error('API 錯誤：', error);
+    throw error;
   }
-  
-  return res.json();
 }
 
 /**
@@ -400,16 +416,23 @@ export async function analyzeEnvironment(location: string): Promise<{ environmen
     }
   }
 
-  const res = await fetch("/api/gemini/analyze-environment", {
-    method: "POST",
-    headers: getHeaders(),
-    body: JSON.stringify({ location })
-  });
-  
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.error || `環境分析失敗 (HTTP ${res.status})`);
+  const url = "/api/gemini/analyze-environment";
+  console.log('送出 API 請求，URL：', url);
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: getHeaders(),
+      body: JSON.stringify({ location })
+    });
+    
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.error || `環境分析失敗 (HTTP ${res.status})`);
+    }
+    
+    return res.json();
+  } catch (error: any) {
+    console.error('API 錯誤：', error);
+    throw error;
   }
-  
-  return res.json();
 }

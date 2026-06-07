@@ -284,13 +284,13 @@ export function SuppliesInventory({ supplies, setSupplies, memberCount, setMembe
         <button
           type="button"
           onClick={() => setUrgencyFilter('immediate')}
-          className={`flex-1 flex flex-col items-center justify-center py-2 px-2.5 rounded-lg border transition-all text-center cursor-pointer ${
+          className={`flex-1 flex flex-col items-center justify-center py-3 px-3.5 min-w-[72px] rounded-lg border transition-all text-center cursor-pointer ${
             urgencyFilter === 'immediate'
               ? 'bg-red-50 text-[#7f1d1d] font-extrabold border-red-200 shadow-xs'
               : 'bg-transparent text-stone-500 hover:text-stone-800 border-transparent font-bold hover:bg-stone-50/50'
           }`}
         >
-          <span className="text-xs tracking-wider flex items-center gap-1 justify-center">
+          <span className="text-[12px] tracking-wider flex items-center gap-1 justify-center">
             <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#7f1d1d] animate-pulse shrink-0" />
             🚨 隨身避難包 (臨災急需)
           </span>
@@ -300,13 +300,13 @@ export function SuppliesInventory({ supplies, setSupplies, memberCount, setMembe
         <button
           type="button"
           onClick={() => setUrgencyFilter('routine')}
-          className={`flex-1 flex flex-col items-center justify-center py-2 px-2.5 rounded-lg border transition-all text-center cursor-pointer ${
+          className={`flex-1 flex flex-col items-center justify-center py-3 px-3.5 min-w-[72px] rounded-lg border transition-all text-center cursor-pointer ${
             urgencyFilter === 'routine'
               ? 'bg-amber-50/70 text-amber-800 font-extrabold border-amber-200 shadow-xs'
               : 'bg-transparent text-stone-500 hover:text-stone-800 border-transparent font-bold hover:bg-stone-50/50'
           }`}
         >
-          <span className="text-xs tracking-wider flex items-center gap-1 justify-center">
+          <span className="text-[12px] tracking-wider flex items-center gap-1 justify-center">
             🏠 居家儲置庫 (平常準備)
           </span>
           <span className="text-[10px] mt-0.5 opacity-80 font-medium scale-95 font-bold">點選查看平常儲存居家物資</span>
@@ -315,13 +315,13 @@ export function SuppliesInventory({ supplies, setSupplies, memberCount, setMembe
         <button
           type="button"
           onClick={() => setUrgencyFilter('all')}
-          className={`flex-1 flex flex-col items-center justify-center py-2 px-2.5 rounded-lg border transition-all text-center cursor-pointer ${
+          className={`flex-1 flex flex-col items-center justify-center py-3 px-3.5 min-w-[72px] rounded-lg border transition-all text-center cursor-pointer ${
             urgencyFilter === 'all'
               ? 'bg-stone-800 text-white font-extrabold border-stone-700 shadow-xs'
               : 'bg-transparent text-stone-500 hover:text-stone-800 border-transparent font-bold hover:bg-stone-50/50'
           }`}
         >
-          <span className="text-xs tracking-wider flex items-center gap-1 justify-center">
+          <span className="text-[12px] tracking-wider flex items-center gap-1 justify-center">
             📦 完整防護網 (合併檢視)
           </span>
           <span className="text-[10px] mt-0.5 opacity-80 font-medium scale-95 font-bold">一次看清所有項目定期大檢查</span>
@@ -334,13 +334,13 @@ export function SuppliesInventory({ supplies, setSupplies, memberCount, setMembe
           return (
             <div key={category} className={`bg-[#FAF9F6]/85 border border-stone-200/80 rounded-xl flex flex-col gap-4 ${isSidebar ? 'p-3.5' : 'p-5'}`}>
               <div className="flex items-center justify-between border-b border-stone-200/40 pb-2">
-                <h4 className="text-sm font-bold text-stone-800 flex items-center gap-1.5 font-sans">
+                <h4 className="text-[15px] font-medium text-stone-800 flex items-center gap-1.5 font-sans">
                   <div className={`w-6 h-6 rounded border flex items-center justify-center shrink-0 ${getCategoryBg(category)}`}>
                     {getCategoryIcon(category)}
                   </div>
-                  <span className="tracking-wide text-stone-800 font-extrabold">{category}</span>
+                  <span className="tracking-wide text-stone-800 font-medium">{category}</span>
                 </h4>
-                <span className="text-[10px] font-bold text-stone-500 bg-stone-100/80 px-2 py-0.5 rounded-full border border-stone-200/40">
+                <span className="text-[15px] font-medium text-stone-500 bg-stone-100/80 px-2 py-0.5 rounded-full border border-stone-200/40">
                   {items.filter(i => i.hasIt).length}/{items.length}
                 </span>
               </div>
@@ -353,7 +353,7 @@ export function SuppliesInventory({ supplies, setSupplies, memberCount, setMembe
                     <div 
                       key={item.id}
                       onClick={() => toggleSupply(item.id)}
-                      className={`group cursor-pointer flex flex-col p-2.5 rounded border transition-all ${
+                      className={`group cursor-pointer flex flex-col py-[14px] px-2.5 rounded border transition-all ${
                         checked 
                           ? "bg-[#faf9f6]/40 border-stone-150/50 opacity-60 hover:opacity-100" 
                           : "bg-white border-stone-200 hover:border-stone-400 shadow-sm"
@@ -361,7 +361,7 @@ export function SuppliesInventory({ supplies, setSupplies, memberCount, setMembe
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex-1 pr-1 text-left flex flex-col">
-                          <span className={`text-sm font-bold transition-all leading-snug ${checked ? "text-stone-400 line-through font-medium" : "text-stone-900"}`}>
+                          <span className={`text-[14px] font-medium transition-all leading-[1.5] ${checked ? "text-stone-400 line-through font-medium" : "text-stone-900"}`}>
                             {item.name}
                           </span>
                         </div>
@@ -383,19 +383,19 @@ export function SuppliesInventory({ supplies, setSupplies, memberCount, setMembe
                             onChange={() => toggleSupply(item.id)}
                             className="hidden"
                           />
-                          <div className={`w-4 h-4 rounded flex items-center justify-center shrink-0 border transition-all ${
+                          <div className={`w-[22px] h-[22px] rounded flex items-center justify-center shrink-0 border transition-all ${
                             checked 
                               ? 'bg-[#7f1d1d] border-[#7f1d1d] shadow-sm' 
                               : 'border-stone-300 group-hover:border-stone-500 bg-[#FAF9F6]'
                           }`}>
-                            {checked && <Check className="w-3 h-3 text-white" strokeWidth={3.5} />}
+                            {checked && <Check className="w-3.5 h-3.5 text-white" strokeWidth={3.5} />}
                           </div>
                         </div>
                       </div>
 
                       {/* Display scales description */}
                       {dynamicDesc && !checked && (
-                        <div className="text-[11px] font-bold mt-1 text-[#7f1d1d]/90 flex items-center gap-1.5 font-sans">
+                        <div className="text-[12px] font-medium leading-[1.5] mt-1 text-[#ea580c] flex items-center gap-1.5 font-sans">
                           <span>⚖️ {dynamicDesc}</span>
                         </div>
                       )}

@@ -1,5 +1,5 @@
 {
-  "name": "災害資訊整合平台",
+  "name": "防災生活與居住準備指南",
   "description": "提供即時災害資訊、天氣預警、停班停課查詢、AI 風險摘要與家庭（包含長輩防護、外送防護）的客製化避難生活與防護指引平台。",
   "requestFramePermissions": ["geolocation"],
   "majorCapabilities": [
